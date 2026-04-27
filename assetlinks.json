@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.netlify.effervescent_peony_d44f1e.twa",
+      "sha256_cert_fingerprints": [
+        "DD:F6:01:E1:0A:C4:9D:B0:73:95:14:AD:FC:97:88:7E:BF:56:54:A5:51:1A:C9:0A:B4:52:E8:2C:8A:74:81:04"
+      ]
+    }
+  }
+]
