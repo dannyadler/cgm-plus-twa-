@@ -2,7 +2,7 @@
 
 Single-page PWA that wraps the BioT Demo2 backend and runs on Android as a signed APK via PWABuilder's TWA (Trusted Web Activity).
 
-Built for the Trinity Tech CGM Plus presale demo in April 2026. Serves as the reference implementation for future BioT mobile apps.
+Built for the Trinity Tech CGM Plus presale demo (Avinash) in April 2026. Serves as the reference implementation for future BioT mobile apps.
 
 ## What this app does
 
