@@ -1,0 +1,13 @@
+{
+  "name": "trinity-cgm-plus-pwa",
+  "private": true,
+  "description": "Trinity CGM Plus patient PWA with secure auth",
+  "scripts": {
+    "dev": "netlify dev",
+    "reset-creds": "node scripts/reset-creds.mjs"
+  },
+  "dependencies": {
+    "@simplewebauthn/server": "13.1.1",
+    "@netlify/blobs": "8.1.0"
+  }
+}

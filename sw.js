@@ -1,9 +1,9 @@
 // Trinity CGM Plus - Service Worker
 // Network-first for HTML (so updates ship instantly)
 // Cache-first for static assets
-// Never cache BioT API
+// Never cache BioT API or Netlify Functions
 
-const CACHE_NAME = 'trinity-cgm-plus-v16';
+const CACHE_NAME = 'trinity-cgm-plus-v17';
 const APP_SHELL = [
   './',
   './index.html',
@@ -37,8 +37,9 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // Never cache BioT API calls - always network
+  // Never cache BioT API calls or Netlify Functions - always network
   if (url.hostname.includes('biot-med.com')) return;
+  if (url.pathname.startsWith('/.netlify/functions/')) return;
 
   // Cross-origin: pass through
   if (url.origin !== self.location.origin) return;

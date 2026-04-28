@@ -98,6 +98,70 @@
   }
   .tab { background: none; border: none; font-size: 11px; color: #888; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 12px; }
   .tab.active { color: #1A1A1A; font-weight: 600; }
+
+  /* Auth gate */
+  .auth-gate {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #FFF8F0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 28px;
+    transition: opacity 0.3s ease;
+  }
+  .auth-gate.hidden { display: none; }
+  .auth-gate .auth-title {
+    font-size: 28px; font-weight: 300; letter-spacing: -0.5px;
+    color: #1A1A1A; margin-bottom: 8px;
+  }
+  .auth-gate .auth-subtitle {
+    font-size: 14px; color: #888; margin-bottom: 40px;
+  }
+  .auth-gate .auth-input {
+    width: 100%; max-width: 320px; padding: 16px 20px;
+    font-size: 18px; font-weight: 300; letter-spacing: 2px;
+    border: 1px solid rgba(0,0,0,0.1); border-radius: 12px;
+    background: rgba(255,255,255,0.6); color: #1A1A1A;
+    text-align: center; outline: none;
+    -webkit-text-security: disc;
+  }
+  .auth-gate .auth-input:focus { border-color: rgba(0,0,0,0.25); }
+  .auth-gate .auth-btn {
+    margin-top: 20px; width: 100%; max-width: 320px;
+    padding: 16px; font-size: 16px; font-weight: 500;
+    background: #1A1A1A; color: #FFF8F0; border: none; border-radius: 12px;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+  .auth-gate .auth-btn:active { opacity: 0.7; }
+  .auth-gate .auth-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .auth-gate .auth-error {
+    margin-top: 16px; font-size: 14px; color: #D32F2F;
+    min-height: 20px; text-align: center;
+  }
+  .auth-gate .auth-status {
+    margin-top: 12px; font-size: 13px; color: #888;
+    min-height: 18px; text-align: center;
+  }
+  /* Fingerprint prompt overlay */
+  .fingerprint-prompt {
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    padding: 28px;
+  }
+  .fingerprint-prompt.hidden { display: none; }
+  .fingerprint-prompt .fp-card {
+    background: #FFF8F0; border-radius: 20px; padding: 32px 28px;
+    max-width: 340px; width: 100%; text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  }
+  .fingerprint-prompt .fp-icon { font-size: 48px; margin-bottom: 16px; }
+  .fingerprint-prompt .fp-title { font-size: 20px; font-weight: 500; margin-bottom: 8px; }
+  .fingerprint-prompt .fp-body { font-size: 14px; color: #666; margin-bottom: 24px; line-height: 1.5; }
+  .fingerprint-prompt .fp-btn {
+    width: 100%; padding: 14px; font-size: 15px; font-weight: 500;
+    border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px;
+  }
+  .fingerprint-prompt .fp-btn-primary { background: #1A1A1A; color: #FFF8F0; }
+  .fingerprint-prompt .fp-btn-secondary { background: transparent; color: #888; }
   .tab svg { width: 22px; height: 22px; }
 
   /* DASHBOARD SCREEN */
@@ -516,19 +580,52 @@
   </div>
 </div>
 
+<!-- Auth gate (shown when SECURE_AUTH_ENABLED = true) -->
+<div id="authGate" class="auth-gate hidden">
+  <div class="auth-title">CGM Plus</div>
+  <div class="auth-subtitle">Enter password to unlock</div>
+  <input id="authPassword" class="auth-input" type="password" placeholder="Password" autocomplete="off" />
+  <button id="authUnlock" class="auth-btn">Unlock</button>
+  <div id="authError" class="auth-error"></div>
+  <div id="authStatus" class="auth-status"></div>
+</div>
+
+<!-- Fingerprint registration prompt -->
+<div id="fpPrompt" class="fingerprint-prompt hidden">
+  <div class="fp-card">
+    <div class="fp-icon">&#128274;</div>
+    <div class="fp-title">Enable fingerprint unlock?</div>
+    <div class="fp-body">Use your fingerprint or Face ID to unlock the app next time. No passwords stored on device.</div>
+    <button id="fpEnable" class="fp-btn fp-btn-primary">Enable</button>
+    <button id="fpSkip" class="fp-btn fp-btn-secondary">Skip</button>
+  </div>
+</div>
+
 <!-- Hidden log element (keeps existing code working without visual panel) -->
 <div id="log" style="display:none;"></div>
 
 <script>
-const API_BASE = 'https://api.dev.demo2.biot-med.com';
-// Primary: Olivia's patient login (demo narrative).
-// Fallback: clinician credential (has full ABAC scope for reads).
-const PATIENT_CRED = { username: 'daniel+olivia@biot-med.com', password: 'Aa123456' };
-const CLINICIAN_CRED = { username: 'daniel+nurse@biot-med.com', password: 'Aa123456' };
-const PATIENT_ID = '8ebf1dce-adbe-4306-a3d2-e020ce54f8c2';
+// ── Feature flag: secure auth ──
+// When true, shows password/fingerprint gate and uses server-side login.
+// When false, runs legacy hardcoded-creds flow (for existing TWA compatibility).
+const SECURE_AUTH_ENABLED = true;
 
+// ── Legacy constants (used when SECURE_AUTH_ENABLED = false) ──
+// Fill these in only for local debugging. Leave blank for production.
+const LEGACY_API_BASE = '';
+const LEGACY_PATIENT_CRED = { username: '', password: '' };
+const LEGACY_CLINICIAN_CRED = { username: '', password: '' };
+const LEGACY_PATIENT_ID = '';
+
+// ── Runtime state (populated by either auth path) ──
+let API_BASE = LEGACY_API_BASE;
+let PATIENT_ID = LEGACY_PATIENT_ID;
 let token = null;
 let authRole = null;
+let _tokenExpiresAt = 0;
+let _authInProgress = false;
+// Registration data from password login (used for WebAuthn registration prompt)
+let _regData = null;
 let currentHours = 24;  // Home chart: wide window to find recent data
 let healthHours = 3;    // Health screen defaults to 3h like Dexcom
 let lastGlucoseReadings = []; // cached from last loadAll, reused by Health pills
@@ -569,7 +666,9 @@ function setBanner(text, state) {
   }
 }
 
-async function doLogin(cred, roleLabel) {
+// ── Legacy login (used when SECURE_AUTH_ENABLED = false) ──
+
+async function legacyDoLogin(cred, roleLabel) {
   log(`Logging in as ${cred.username} (${roleLabel})`, 'info');
   const res = await fetch(`${API_BASE}/ums/v2/users/login`, {
     method: 'POST',
@@ -586,8 +685,7 @@ async function doLogin(cred, roleLabel) {
   return data.accessJwt.token;
 }
 
-async function probeReadAccess(t) {
-  // Quick probe to check if this token can read sessions.
+async function legacyProbeReadAccess(t) {
   const searchRequest = {
     filter: { '_patient.id': { eq: PATIENT_ID }, '_state': { eq: 'ACTIVE' } },
     limit: 1
@@ -597,25 +695,376 @@ async function probeReadAccess(t) {
   return res.ok;
 }
 
-async function login() {
-  // Try patient first.
-  const patientToken = await doLogin(PATIENT_CRED, 'patient');
+async function legacyLogin() {
+  const patientToken = await legacyDoLogin(LEGACY_PATIENT_CRED, 'patient');
   if (patientToken) {
-    const canRead = await probeReadAccess(patientToken);
+    const canRead = await legacyProbeReadAccess(patientToken);
     if (canRead) {
       token = patientToken;
       authRole = 'patient';
       log('Patient token has read scope. Using it.', 'ok');
       return;
     }
-    log('Patient token lacks read scope for sessions. Falling back to clinician.', 'info');
+    log('Patient token lacks read scope. Falling back to clinician.', 'info');
   }
-  // Fallback to clinician.
-  const clinToken = await doLogin(CLINICIAN_CRED, 'clinician');
+  const clinToken = await legacyDoLogin(LEGACY_CLINICIAN_CRED, 'clinician');
   if (!clinToken) throw new Error('Both logins failed');
   token = clinToken;
   authRole = 'clinician';
-  log('Using clinician token for data reads (Olivia still displayed as current patient).', 'ok');
+  log('Using clinician token.', 'ok');
+}
+
+// ── Secure auth helpers ──
+
+const FUNCTIONS_BASE = window.location.origin;
+
+async function secureLoginWithPassword(appPassword, needsRegistration) {
+  const res = await fetch(`${FUNCTIONS_BASE}/.netlify/functions/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'password', appPassword, needsRegistration }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Login failed (${res.status})`);
+  return data;
+}
+
+async function secureGetChallenge(credentialId) {
+  const res = await fetch(`${FUNCTIONS_BASE}/.netlify/functions/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'challenge', credentialId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Challenge failed (${res.status})`);
+  return data.options;
+}
+
+async function secureLoginWithWebAuthn(credentialId, assertion) {
+  const res = await fetch(`${FUNCTIONS_BASE}/.netlify/functions/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'webauthn', credentialId, assertion }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `WebAuthn login failed (${res.status})`);
+  return data;
+}
+
+async function secureRegisterCredential(attestation, nonce, nonceSig) {
+  const res = await fetch(`${FUNCTIONS_BASE}/.netlify/functions/register-credential`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ attestation, nonce, nonceSig }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Registration failed (${res.status})`);
+  return data;
+}
+
+function applyLoginResult(result) {
+  token = result.token;
+  authRole = result.role;
+  PATIENT_ID = result.patientId;
+  API_BASE = result.apiBase;
+  _tokenExpiresAt = result.expiresAt || (Date.now() + 3600000);
+  log(`Secure login: role=${authRole}`, 'ok');
+}
+
+// base64url helpers for WebAuthn
+function bufferToBase64url(buf) {
+  const bytes = new Uint8Array(buf);
+  let str = '';
+  for (const b of bytes) str += String.fromCharCode(b);
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+function base64urlToBuffer(b64url) {
+  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+  const binary = atob(b64 + pad);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+async function webauthnSupported() {
+  if (!window.PublicKeyCredential) return false;
+  try {
+    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  } catch { return false; }
+}
+
+// ── Fingerprint unlock flow ──
+
+async function attemptWebAuthnLogin() {
+  const credentialId = localStorage.getItem('cgm_webauthn_cred_id');
+  if (!credentialId) return false;
+
+  try {
+    const options = await secureGetChallenge(credentialId);
+
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge: base64urlToBuffer(options.challenge),
+        allowCredentials: [{
+          id: base64urlToBuffer(credentialId),
+          type: 'public-key',
+          transports: ['internal'],
+        }],
+        userVerification: 'required',
+        timeout: 60000,
+        rpId: options.rpId,
+      },
+    });
+
+    // Serialize for server
+    const serialized = {
+      id: assertion.id,
+      rawId: bufferToBase64url(assertion.rawId),
+      type: assertion.type,
+      response: {
+        authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+        clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
+        signature: bufferToBase64url(assertion.response.signature),
+        userHandle: assertion.response.userHandle ? bufferToBase64url(assertion.response.userHandle) : null,
+      },
+      clientExtensionResults: assertion.getClientExtensionResults(),
+    };
+
+    const result = await secureLoginWithWebAuthn(credentialId, serialized);
+    applyLoginResult(result);
+    return true;
+  } catch (err) {
+    log(`WebAuthn login failed: ${err.message}`, 'info');
+    return false;
+  }
+}
+
+async function registerWebAuthnCredential() {
+  if (!_regData) return false;
+  const { registrationChallenge, registrationNonce, registrationNonceSig, rpId, rpName } = _regData;
+
+  try {
+    const userId = new Uint8Array(16);
+    crypto.getRandomValues(userId);
+
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge: base64urlToBuffer(registrationChallenge),
+        rp: { id: rpId, name: rpName || 'CGM Plus' },
+        user: {
+          id: userId,
+          name: 'cgm-plus-user',
+          displayName: 'CGM Plus',
+        },
+        pubKeyCredParams: [
+          { alg: -7, type: 'public-key' },   // ES256
+          { alg: -257, type: 'public-key' },  // RS256
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'preferred',
+        },
+        attestation: 'none',
+        timeout: 60000,
+      },
+    });
+
+    // Serialize for server
+    const attestation = {
+      id: credential.id,
+      rawId: bufferToBase64url(credential.rawId),
+      type: credential.type,
+      response: {
+        attestationObject: bufferToBase64url(credential.response.attestationObject),
+        clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+      },
+      clientExtensionResults: credential.getClientExtensionResults(),
+    };
+
+    const result = await secureRegisterCredential(attestation, registrationNonce, registrationNonceSig);
+    if (result.ok) {
+      localStorage.setItem('cgm_webauthn_cred_id', result.credentialId);
+      log('WebAuthn credential registered', 'ok');
+      return true;
+    }
+    return false;
+  } catch (err) {
+    log(`WebAuthn registration failed: ${err.message}`, 'err');
+    return false;
+  }
+}
+
+// ── Token refresh on 401 ──
+
+async function refreshToken() {
+  if (_authInProgress) return false;
+  _authInProgress = true;
+  try {
+    // Try fingerprint first if registered
+    const credId = localStorage.getItem('cgm_webauthn_cred_id');
+    if (credId && await webauthnSupported()) {
+      const ok = await attemptWebAuthnLogin();
+      if (ok) { _authInProgress = false; return true; }
+    }
+    // Fall through to password prompt
+    showAuthGate();
+    _authInProgress = false;
+    return false; // caller should stop; init() will re-run after password entry
+  } catch {
+    _authInProgress = false;
+    return false;
+  }
+}
+
+// ── Auth gate UI ──
+
+function showAuthGate() {
+  const gate = document.getElementById('authGate');
+  gate.classList.remove('hidden');
+  document.getElementById('authPassword').value = '';
+  document.getElementById('authError').textContent = '';
+  document.getElementById('authStatus').textContent = '';
+  document.getElementById('authPassword').focus();
+}
+
+function hideAuthGate() {
+  document.getElementById('authGate').classList.add('hidden');
+}
+
+// Wire up auth gate events (runs once on load)
+function initAuthGateUI() {
+  const btn = document.getElementById('authUnlock');
+  const input = document.getElementById('authPassword');
+  const errEl = document.getElementById('authError');
+  const statusEl = document.getElementById('authStatus');
+
+  async function doUnlock() {
+    const pw = input.value.trim();
+    if (!pw) { errEl.textContent = 'Enter the app password'; return; }
+    btn.disabled = true;
+    errEl.textContent = '';
+    statusEl.textContent = 'Authenticating...';
+    try {
+      const hasWebAuthn = await webauthnSupported();
+      const hasCred = !!localStorage.getItem('cgm_webauthn_cred_id');
+      const skipped = localStorage.getItem('cgm_webauthn_skipped') === '1';
+      const needsRegistration = hasWebAuthn && !hasCred && !skipped;
+
+      const result = await secureLoginWithPassword(pw, needsRegistration);
+      applyLoginResult(result);
+      if (needsRegistration) {
+        _regData = result; // save for registration prompt
+      }
+      hideAuthGate();
+      statusEl.textContent = '';
+      await secureInitApp();
+    } catch (err) {
+      const msg = err.message || 'Login failed';
+      if (msg.includes('429') || msg.includes('Too many')) {
+        errEl.textContent = 'Too many attempts. Wait 1 minute.';
+      } else {
+        errEl.textContent = msg;
+      }
+      statusEl.textContent = '';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener('click', doUnlock);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') doUnlock(); });
+}
+
+// ── Fingerprint prompt UI ──
+
+function showFingerprintPrompt() {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('fpPrompt');
+    overlay.classList.remove('hidden');
+
+    document.getElementById('fpEnable').onclick = async () => {
+      overlay.classList.add('hidden');
+      const ok = await registerWebAuthnCredential();
+      resolve(ok);
+    };
+    document.getElementById('fpSkip').onclick = () => {
+      overlay.classList.add('hidden');
+      localStorage.setItem('cgm_webauthn_skipped', '1');
+      resolve(false);
+    };
+  });
+}
+
+// ── Secure init (called after successful auth) ──
+
+async function secureInitApp() {
+  try {
+    setBanner('Fetching data...', 'ok');
+    await loadAll();
+    setInterval(() => loadAll(), 60000);
+
+    // After first successful load, prompt for fingerprint if eligible
+    if (_regData && !localStorage.getItem('cgm_webauthn_cred_id')) {
+      await showFingerprintPrompt();
+      _regData = null;
+    }
+  } catch (e) {
+    log(e.message, 'err');
+    setBanner('Connection error', 'err');
+  }
+}
+
+// ── Logout (long-press title) ──
+
+function initLogout() {
+  const titleEl = document.querySelector('.top-nav .title');
+  if (!titleEl) return;
+  let pressTimer = null;
+  titleEl.addEventListener('touchstart', () => {
+    pressTimer = setTimeout(() => {
+      if (confirm('Sign out of CGM Plus?')) {
+        localStorage.removeItem('cgm_webauthn_cred_id');
+        localStorage.removeItem('cgm_webauthn_skipped');
+        token = null;
+        authRole = null;
+        _tokenExpiresAt = 0;
+        _regData = null;
+        showAuthGate();
+      }
+    }, 1500);
+  }, { passive: true });
+  titleEl.addEventListener('touchend', () => { if (pressTimer) clearTimeout(pressTimer); });
+  titleEl.addEventListener('touchcancel', () => { if (pressTimer) clearTimeout(pressTimer); });
+  // Mouse long-press for desktop testing
+  titleEl.addEventListener('mousedown', () => {
+    pressTimer = setTimeout(() => {
+      if (confirm('Sign out of CGM Plus?')) {
+        localStorage.removeItem('cgm_webauthn_cred_id');
+        localStorage.removeItem('cgm_webauthn_skipped');
+        token = null;
+        authRole = null;
+        _tokenExpiresAt = 0;
+        _regData = null;
+        showAuthGate();
+      }
+    }, 1500);
+  });
+  titleEl.addEventListener('mouseup', () => { if (pressTimer) clearTimeout(pressTimer); });
+  titleEl.addEventListener('mouseleave', () => { if (pressTimer) clearTimeout(pressTimer); });
+}
+
+// ── Unified login() — dispatches to legacy or secure path ──
+
+async function login() {
+  if (!SECURE_AUTH_ENABLED) {
+    await legacyLogin();
+    return;
+  }
+  // Secure path: token already set by auth gate before login() is called.
+  // This function is only reached from legacy init() path.
+  throw new Error('Secure auth: use auth gate instead of login()');
 }
 
 async function fetchMeasurements(hours, limit = 100) {
@@ -638,6 +1087,16 @@ async function fetchMeasurements(hours, limit = 100) {
     };
     const url = `${API_BASE}/measurement/v2/measurements/raw?searchRequest=${encodeURIComponent(JSON.stringify(searchRequest))}`;
     const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (res.status === 401 && SECURE_AUTH_ENABLED) {
+      const refreshed = await refreshToken();
+      if (refreshed) {
+        const retry = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!retry.ok) return [];
+        const d2 = await retry.json();
+        return d2.data || d2.rows || d2.results || [];
+      }
+      return [];
+    }
     if (!res.ok) return [];
     const data = await res.json();
     return data.data || data.rows || data.results || [];
@@ -681,6 +1140,17 @@ async function fetchSession() {
   };
   const url = `${API_BASE}/device/v1/devices/usage-sessions?searchRequest=${encodeURIComponent(JSON.stringify(searchRequest))}`;
   const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+  if (res.status === 401 && SECURE_AUTH_ENABLED) {
+    const refreshed = await refreshToken();
+    if (refreshed) {
+      const retry = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!retry.ok) return null;
+      const d2 = await retry.json();
+      const r2 = d2.data || d2.rows || d2.results || [];
+      return r2[0] || null;
+    }
+    return null;
+  }
   if (!res.ok) {
     log(`Session fetch returned ${res.status}`, 'err');
     return null;
@@ -1267,10 +1737,35 @@ async function loadAll() {
 }
 
 async function init() {
+  if (SECURE_AUTH_ENABLED) {
+    // Secure path: try fingerprint first, then show password gate
+    initAuthGateUI();
+    initLogout();
+
+    const credId = localStorage.getItem('cgm_webauthn_cred_id');
+    const hasWebAuthn = await webauthnSupported();
+
+    if (credId && hasWebAuthn) {
+      // Return visit: try fingerprint unlock
+      setBanner('Unlocking...', 'ok');
+      const ok = await attemptWebAuthnLogin();
+      if (ok) {
+        await secureInitApp();
+        return;
+      }
+      // Failed or cancelled: fall through to password
+    }
+
+    // Show password gate
+    showAuthGate();
+    return;
+  }
+
+  // Legacy path (SECURE_AUTH_ENABLED = false)
   try {
     const tLogin0 = performance.now();
     setBanner('Logging in...', 'ok');
-    await login();
+    await legacyLogin();
     const tLogin = Math.round(performance.now() - tLogin0);
     log(`[timing] login: ${tLogin}ms`, 'ok');
     setBanner(`Login ${tLogin}ms. Fetching...`, 'ok');
