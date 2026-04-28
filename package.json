@@ -4,10 +4,22 @@
   "description": "Trinity CGM Plus patient PWA with secure auth",
   "scripts": {
     "dev": "netlify dev",
-    "reset-creds": "node scripts/reset-creds.mjs"
+    "reset-creds": "node scripts/reset-creds.mjs",
+    "test:parse": "node tests/parse-check.mjs",
+    "test:secrets": "node tests/secrets-scan.mjs",
+    "test:unit": "node --test tests/unit/*.test.mjs",
+    "test:e2e": "playwright test",
+    "test:ci": "npm run test:parse && npm run test:secrets && npm run test:unit",
+    "test": "npm run test:ci",
+    "lint": "eslint lib/ scripts/ netlify/functions/ tests/",
+    "audit:ci": "npm audit --audit-level=high --json || true"
   },
   "dependencies": {
     "@simplewebauthn/server": "13.1.1",
     "@netlify/blobs": "8.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "eslint": "^9.16.0"
   }
 }

@@ -1,0 +1,214 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:8e0c5a7f-2c8d-4e0a-bd2f-trinity-cgm-plus",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-04-28T00:00:00Z",
+    "tools": [
+      {
+        "vendor": "AI-assisted",
+        "name": "Claude Opus 4.7",
+        "version": "claude-opus-4-7"
+      }
+    ],
+    "component": {
+      "bom-ref": "trinity-cgm-plus-pwa@0.1.0",
+      "type": "application",
+      "name": "trinity-cgm-plus-pwa",
+      "version": "0.1.0",
+      "description": "Trinity CGM Plus patient PWA with secure auth (presale demo)",
+      "supplier": {
+        "name": "Trinity Biotech (presale demo by BioT)"
+      }
+    },
+    "properties": [
+      {
+        "name": "regulatory:status",
+        "value": "AI-DRAFT — Pending Human Review"
+      },
+      {
+        "name": "regulatory:purpose",
+        "value": "Presale demonstration; not for submission"
+      }
+    ]
+  },
+  "components": [
+    {
+      "bom-ref": "pkg:npm/%40netlify/blobs@8.1.0",
+      "type": "library",
+      "name": "@netlify/blobs",
+      "version": "8.1.0",
+      "purl": "pkg:npm/%40netlify/blobs@8.1.0",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "hashes": [
+        { "alg": "SHA-512", "content": "9hIbusvAZjSGBJ42OyFC2AxsEph1LuKQahMWFcPGEIsOqIYHhMRkYA7wSUMhH7naydjNmllpcp3pJLOK4RhFaQ" }
+      ],
+      "scope": "required",
+      "description": "Server-side persistent key/value store for WebAuthn credentials and rate-limit state"
+    },
+    {
+      "bom-ref": "pkg:npm/%40simplewebauthn/server@13.1.1",
+      "type": "library",
+      "name": "@simplewebauthn/server",
+      "version": "13.1.1",
+      "purl": "pkg:npm/%40simplewebauthn/server@13.1.1",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "hashes": [
+        { "alg": "SHA-512", "content": "1hsLpRHfSuMB9ee2aAdh0Htza/X3f4djhYISrggqGe3xopNjOcePiSDkDDoPzDYaaMCrbqGP1H2TYU7bgL9PmA" }
+      ],
+      "scope": "required",
+      "description": "Server-side WebAuthn registration and assertion verification"
+    },
+    {
+      "bom-ref": "pkg:npm/%40hexagon/base64@1.1.28",
+      "type": "library",
+      "name": "@hexagon/base64",
+      "version": "1.1.28",
+      "purl": "pkg:npm/%40hexagon/base64@1.1.28",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "pkg:npm/%40levischuck/tiny-cbor@0.2.11",
+      "type": "library",
+      "name": "@levischuck/tiny-cbor",
+      "version": "0.2.11",
+      "purl": "pkg:npm/%40levischuck/tiny-cbor@0.2.11",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "pkg:npm/%40peculiar/asn1-android@2.6.0",
+      "type": "library",
+      "name": "@peculiar/asn1-android",
+      "version": "2.6.0",
+      "purl": "pkg:npm/%40peculiar/asn1-android@2.6.0",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "pkg:npm/%40peculiar/asn1-ecc@2.6.1",
+      "type": "library",
+      "name": "@peculiar/asn1-ecc",
+      "version": "2.6.1",
+      "purl": "pkg:npm/%40peculiar/asn1-ecc@2.6.1",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "pkg:npm/%40peculiar/asn1-rsa@2.6.1",
+      "type": "library",
+      "name": "@peculiar/asn1-rsa",
+      "version": "2.6.1",
+      "purl": "pkg:npm/%40peculiar/asn1-rsa@2.6.1",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "pkg:npm/%40peculiar/asn1-schema@2.6.0",
+      "type": "library",
+      "name": "@peculiar/asn1-schema",
+      "version": "2.6.0",
+      "purl": "pkg:npm/%40peculiar/asn1-schema@2.6.0",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "pkg:npm/%40peculiar/asn1-x509@2.6.1",
+      "type": "library",
+      "name": "@peculiar/asn1-x509",
+      "version": "2.6.1",
+      "purl": "pkg:npm/%40peculiar/asn1-x509@2.6.1",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "pkg:npm/asn1js@3.0.10",
+      "type": "library",
+      "name": "asn1js",
+      "version": "3.0.10",
+      "purl": "pkg:npm/asn1js@3.0.10",
+      "licenses": [{ "license": { "id": "BSD-3-Clause" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "pkg:npm/pvtsutils@1.3.6",
+      "type": "library",
+      "name": "pvtsutils",
+      "version": "1.3.6",
+      "purl": "pkg:npm/pvtsutils@1.3.6",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "pkg:npm/pvutils@1.1.5",
+      "type": "library",
+      "name": "pvutils",
+      "version": "1.1.5",
+      "purl": "pkg:npm/pvutils@1.1.5",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "pkg:npm/tslib@2.8.1",
+      "type": "library",
+      "name": "tslib",
+      "version": "2.8.1",
+      "purl": "pkg:npm/tslib@2.8.1",
+      "licenses": [{ "license": { "id": "0BSD" } }],
+      "scope": "required"
+    },
+    {
+      "bom-ref": "external:biot-demo2",
+      "type": "service",
+      "name": "BioT Demo2 API",
+      "description": "External BioT backend (https://api.dev.demo2.biot-med.com). Treated as SOUP per IEC 62304.",
+      "scope": "required",
+      "supplier": { "name": "BioT Medical Solutions" },
+      "properties": [
+        { "name": "soup:classification", "value": "B" },
+        { "name": "soup:rationale", "value": "Provides glucose data displayed to user; failure could result in stale or absent readings" }
+      ]
+    },
+    {
+      "bom-ref": "external:netlify-platform",
+      "type": "service",
+      "name": "Netlify (hosting + Functions runtime)",
+      "description": "Static hosting and serverless function runtime",
+      "scope": "required",
+      "supplier": { "name": "Netlify, Inc." }
+    },
+    {
+      "bom-ref": "external:webauthn-platform",
+      "type": "operating-system",
+      "name": "WebAuthn Platform Authenticator",
+      "description": "Browser-provided platform authenticator (Touch ID on macOS, Android biometric, Windows Hello). Failure mode: fall back to password.",
+      "scope": "required"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "trinity-cgm-plus-pwa@0.1.0",
+      "dependsOn": [
+        "pkg:npm/%40netlify/blobs@8.1.0",
+        "pkg:npm/%40simplewebauthn/server@13.1.1",
+        "external:biot-demo2",
+        "external:netlify-platform",
+        "external:webauthn-platform"
+      ]
+    },
+    {
+      "ref": "pkg:npm/%40simplewebauthn/server@13.1.1",
+      "dependsOn": [
+        "pkg:npm/%40hexagon/base64@1.1.28",
+        "pkg:npm/%40levischuck/tiny-cbor@0.2.11",
+        "pkg:npm/%40peculiar/asn1-android@2.6.0",
+        "pkg:npm/%40peculiar/asn1-ecc@2.6.1",
+        "pkg:npm/%40peculiar/asn1-rsa@2.6.1",
+        "pkg:npm/%40peculiar/asn1-schema@2.6.0",
+        "pkg:npm/%40peculiar/asn1-x509@2.6.1"
+      ]
+    }
+  ]
+}
