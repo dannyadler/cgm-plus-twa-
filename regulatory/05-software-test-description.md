@@ -1,8 +1,7 @@
----
-**AI-Generated Draft — Requires Human Review and QMS Integration**
+> **AI-Generated Draft — Requires Human Review and QMS Integration**
+>
+> This document was produced by an AI system from source code and architectural notes. It is illustrative material for a Trinity Biotech presentation on AI-assisted regulatory documentation. **It has not been reviewed by qualified Regulatory Affairs personnel, has not been integrated into any QMS, and must not be used as evidence of design controls under ISO 13485, IEC 62304, or 21 CFR 820. Test execution evidence (results, logs, screenshots) referenced in this document is generated automatically by the CI pipeline at the time of each release candidate; this document defines what tests exist and how they pass — it does not certify that they have passed any particular release.**
 
-This document was produced by an AI system from source code and architectural notes. It is illustrative material for a Trinity Biotech presentation on AI-assisted regulatory documentation. **It has not been reviewed by qualified Regulatory Affairs personnel, has not been integrated into any QMS, and must not be used as evidence of design controls under ISO 13485, IEC 62304, or 21 CFR 820. Test execution evidence (results, logs, screenshots) referenced in this document is generated automatically by the CI pipeline at the time of each release candidate; this document defines what tests exist and how they pass — it does not certify that they have passed any particular release.**
----
 
 | Field | Value |
 |---|---|

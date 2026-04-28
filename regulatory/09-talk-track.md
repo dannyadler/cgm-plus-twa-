@@ -1,8 +1,7 @@
----
-**AI-Generated Draft — Customer Presentation Talk Track**
+> **AI-Generated Draft — Customer Presentation Talk Track**
+>
+> This is the presenter's script for a 30-minute walkthrough of the AI-assisted regulatory documentation demo. It is not a regulatory artifact itself.
 
-This is the presenter's script for a 30-minute walkthrough of the AI-assisted regulatory documentation demo. It is not a regulatory artifact itself.
----
 
 | Field | Value |
 |---|---|
