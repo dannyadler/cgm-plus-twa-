@@ -99,7 +99,8 @@ export default async function handler(req) {
         requireUserVerification: true,
       });
     } catch (err) {
-      return json(400, { error: `Registration verification failed: ${err.message}` }, allowedOrigin);
+      console.error('Registration verification error:', err);
+      return json(400, { error: 'Registration verification failed' }, allowedOrigin);
     }
 
     if (!verification.verified || !verification.registrationInfo) {
@@ -123,7 +124,7 @@ export default async function handler(req) {
     return json(200, { ok: true, credentialId }, allowedOrigin);
   } catch (err) {
     console.error('Register-credential error:', err);
-    return json(500, { error: err.message || 'Internal error' }, allowedOrigin);
+    return json(500, { error: 'Internal error' }, allowedOrigin);
   }
 }
 

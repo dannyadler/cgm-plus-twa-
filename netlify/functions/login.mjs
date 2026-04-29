@@ -300,7 +300,8 @@ export default async function handler(req, context) {
           },
         });
       } catch (err) {
-        return json(401, { error: `WebAuthn verification failed: ${err.message}` }, allowedOrigin);
+        console.error('WebAuthn verification error:', err);
+        return json(401, { error: 'WebAuthn verification failed' }, allowedOrigin);
       }
 
       if (!verification.verified) {
@@ -334,7 +335,7 @@ export default async function handler(req, context) {
     return json(400, { error: `Unknown mode: ${mode}` }, allowedOrigin);
   } catch (err) {
     console.error('Login function error:', err);
-    return json(500, { error: err.message || 'Internal error' }, allowedOrigin);
+    return json(500, { error: 'Internal error' }, allowedOrigin);
   }
 }
 

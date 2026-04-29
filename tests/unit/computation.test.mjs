@@ -8,6 +8,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   toMmol,
+  safeToMmol,
   glucoseState,
   bubbleClass,
   computeTrend,
@@ -232,5 +233,53 @@ describe('TST-UNIT-010: timeAgoStr boundaries (REQ-021)', () => {
   });
   it('5h ago', () => {
     assert.equal(timeAgoStr(at(5 * 60 * 60 * 1000), NOW), '5h ago');
+  });
+});
+
+describe('TST-UNIT-011: safeToMmol input validation (REQ-080, RCM-01)', () => {
+  it('returns null for null/undefined/NaN', () => {
+    assert.equal(safeToMmol(null), null);
+    assert.equal(safeToMmol(undefined), null);
+    assert.equal(safeToMmol(NaN), null);
+  });
+  it('returns null for non-number types', () => {
+    assert.equal(safeToMmol('100'), null);
+    assert.equal(safeToMmol(true), null);
+    assert.equal(safeToMmol({}), null);
+  });
+  it('returns null for negative values', () => {
+    assert.equal(safeToMmol(-1), null);
+    assert.equal(safeToMmol(-100), null);
+  });
+  it('returns null for values above 500 mg/dL', () => {
+    assert.equal(safeToMmol(501), null);
+    assert.equal(safeToMmol(1000), null);
+  });
+  it('returns null for Infinity', () => {
+    assert.equal(safeToMmol(Infinity), null);
+    assert.equal(safeToMmol(-Infinity), null);
+  });
+  it('converts valid values correctly', () => {
+    assert.ok(APPROX(safeToMmol(18.0182), 1.0));
+    assert.ok(APPROX(safeToMmol(100), 100 / 18.0182));
+    assert.ok(APPROX(safeToMmol(0), 0));
+    assert.ok(APPROX(safeToMmol(500), 500 / 18.0182));
+  });
+});
+
+describe('TST-UNIT-012: glucoseState handles invalid input (REQ-024)', () => {
+  it('returns "No data" for null', () => {
+    assert.equal(glucoseState(null).status, 'No data');
+  });
+  it('returns "No data" for NaN', () => {
+    assert.equal(glucoseState(NaN).status, 'No data');
+  });
+  it('returns "No data" for undefined', () => {
+    assert.equal(glucoseState(undefined).status, 'No data');
+  });
+  it('still classifies valid values correctly', () => {
+    assert.equal(glucoseState(2.5).cls, 'critical-low');
+    assert.equal(glucoseState(5.0).cls, '');
+    assert.equal(glucoseState(15.0).cls, 'critical-high');
   });
 });

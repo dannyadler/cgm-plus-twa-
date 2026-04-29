@@ -3,7 +3,7 @@
 // Cache-first for static assets
 // Never cache BioT API or Netlify Functions
 
-const CACHE_NAME = 'trinity-cgm-plus-v17';
+const CACHE_NAME = 'trinity-cgm-plus-v18';
 const APP_SHELL = [
   './',
   './index.html',
