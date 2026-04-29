@@ -12,3 +12,1871 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>CGM Plus</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; color: #1A1A1A; }
+  body { background: #FFF8F0; overflow: hidden; }
+
+  .phone {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #FFF8F0;
+    overflow: hidden;
+    position: relative;
+    transition: background 600ms ease;
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .phone.low { background: linear-gradient(135deg, #FFE8D4, #FFD6C0); }
+  .phone.critical-low { background: linear-gradient(135deg, #FFD6C0, #FFBFA0); }
+  .phone.high { background: linear-gradient(180deg, #FFF8F0, #FFE0A0); }
+  .phone.critical-high { background: linear-gradient(135deg, #FFD88A, #FFB040); }
+
+  /* Fake iOS status bar hidden on mobile — Android shows its real one above our viewport */
+  .status-bar { display: none; }
+
+  .top-nav {
+    height: 52px; padding: 0 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .top-nav .icon-btn {
+    width: 40px; height: 40px; border: none; background: transparent;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    color: #1A1A1A;
+  }
+  .top-nav .title { font-size: 20px; font-weight: 600; letter-spacing: 0.3px; }
+
+  .screen { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+  .screen.active { display: flex; }
+
+  /* HOME SCREEN */
+  .home-main {
+    flex: 1; padding: 40px 28px 0; display: flex; flex-direction: column;
+  }
+  .glucose-block { margin-top: 80px; }
+  .glucose-value {
+    font-size: 140px; font-weight: 200; line-height: 1; letter-spacing: -4px;
+    color: #1A1A1A;
+  }
+  .glucose-unit {
+    font-size: 14px; color: #888; margin-top: 6px; letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .trend-row {
+    margin-top: 18px; display: flex; align-items: center; gap: 8px;
+    font-size: 14px; color: #555;
+  }
+  .trend-arrow { font-size: 20px; }
+
+  .vitals-row {
+    margin-top: 40px; display: flex; gap: 24px; flex-wrap: wrap;
+  }
+  .vital {
+    display: flex; flex-direction: column;
+  }
+  .vital .label { font-size: 11px; color: #888; letter-spacing: 0.5px; text-transform: uppercase; }
+  .vital .value { font-size: 22px; font-weight: 400; margin-top: 4px; }
+
+  .home-bottom {
+    padding: 0 28px 100px;
+  }
+  .divider { height: 1px; background: rgba(0,0,0,0.08); margin-bottom: 14px; }
+  .status-label { font-size: 12px; color: #888; }
+  .status-value { font-size: 18px; font-weight: 600; margin-top: 4px; color: #1A1A1A; }
+
+  /* Tab bar */
+  .tab-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 84px; background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    display: flex; justify-content: space-around; align-items: center;
+    padding-bottom: 20px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+  }
+  .tab { background: none; border: none; font-size: 11px; color: #888; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 12px; }
+  .tab.active { color: #1A1A1A; font-weight: 600; }
+
+  /* Auth gate */
+  .auth-gate {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #FFF8F0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 28px;
+    transition: opacity 0.3s ease;
+  }
+  .auth-gate.hidden { display: none; }
+  .auth-gate .auth-title {
+    font-size: 28px; font-weight: 300; letter-spacing: -0.5px;
+    color: #1A1A1A; margin-bottom: 8px;
+  }
+  .auth-gate .auth-subtitle {
+    font-size: 14px; color: #888; margin-bottom: 40px;
+  }
+  .auth-gate .auth-input {
+    width: 100%; max-width: 320px; padding: 16px 20px;
+    font-size: 18px; font-weight: 300; letter-spacing: 2px;
+    border: 1px solid rgba(0,0,0,0.1); border-radius: 12px;
+    background: rgba(255,255,255,0.6); color: #1A1A1A;
+    text-align: center; outline: none;
+    -webkit-text-security: disc;
+  }
+  .auth-gate .auth-input:focus { border-color: rgba(0,0,0,0.25); }
+  .auth-gate .auth-btn {
+    margin-top: 20px; width: 100%; max-width: 320px;
+    padding: 16px; font-size: 16px; font-weight: 500;
+    background: #1A1A1A; color: #FFF8F0; border: none; border-radius: 12px;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+  .auth-gate .auth-btn:active { opacity: 0.7; }
+  .auth-gate .auth-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .auth-gate .auth-error {
+    margin-top: 16px; font-size: 14px; color: #D32F2F;
+    min-height: 20px; text-align: center;
+  }
+  .auth-gate .auth-status {
+    margin-top: 12px; font-size: 13px; color: #888;
+    min-height: 18px; text-align: center;
+  }
+  /* Fingerprint prompt overlay */
+  .fingerprint-prompt {
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    padding: 28px;
+  }
+  .fingerprint-prompt.hidden { display: none; }
+  .fingerprint-prompt .fp-card {
+    background: #FFF8F0; border-radius: 20px; padding: 32px 28px;
+    max-width: 340px; width: 100%; text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  }
+  .fingerprint-prompt .fp-icon { font-size: 48px; margin-bottom: 16px; }
+  .fingerprint-prompt .fp-title { font-size: 20px; font-weight: 500; margin-bottom: 8px; }
+  .fingerprint-prompt .fp-body { font-size: 14px; color: #666; margin-bottom: 24px; line-height: 1.5; }
+  .fingerprint-prompt .fp-btn {
+    width: 100%; padding: 14px; font-size: 15px; font-weight: 500;
+    border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px;
+  }
+  .fingerprint-prompt .fp-btn-primary { background: #1A1A1A; color: #FFF8F0; }
+  .fingerprint-prompt .fp-btn-secondary { background: transparent; color: #888; }
+  .tab svg { width: 22px; height: 22px; }
+
+  /* DASHBOARD SCREEN */
+  .dash-main { flex: 1; overflow-y: auto; padding: 8px 20px 120px; }
+  .dash-title { font-size: 22px; font-weight: 500; margin: 8px 4px 20px; }
+
+  .card {
+    background: rgba(255,255,255,0.7); border-radius: 20px; padding: 20px;
+    margin-bottom: 14px; border: 1px solid rgba(0,0,0,0.04);
+  }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .card-title { font-size: 11px; color: #888; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+  .card-sub { font-size: 11px; color: #aaa; }
+
+  .tir-row { display: flex; gap: 20px; align-items: center; }
+  .tir-ring { width: 120px; height: 120px; flex-shrink: 0; position: relative; }
+  .tir-ring svg { transform: rotate(-90deg); }
+  .tir-ring .tir-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .tir-text .pct { font-size: 32px; font-weight: 300; }
+  .tir-text .lbl { font-size: 9px; color: #888; letter-spacing: 1px; text-transform: uppercase; }
+
+  .tir-stats { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .tir-stat { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .tir-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .tir-stat .tir-lbl { flex: 1; color: #555; }
+  .tir-stat .tir-val { font-weight: 600; color: #1A1A1A; }
+
+  .big-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .big-stat-grid .card { margin: 0; }
+  .big-stat .num { font-size: 32px; font-weight: 300; margin-top: 8px; }
+  .big-stat .sub { font-size: 11px; color: #888; margin-top: 4px; }
+
+  #chart, #healthChart { width: 100%; height: auto; padding: 0 4px; }
+
+  .time-pills { display: flex; gap: 6px; margin: 12px 0 8px; }
+  .pill {
+    padding: 6px 12px; border-radius: 14px; border: 1px solid rgba(0,0,0,0.1);
+    background: transparent; font-size: 11px; cursor: pointer; color: #666;
+  }
+  .pill.active { background: #1A1A1A; color: #fff; border-color: #1A1A1A; }
+
+  .session-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+  .session-row .k { color: #888; }
+  .session-bar { height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .session-bar .fill { height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A); border-radius: 3px; transition: width 400ms; }
+
+  /* HEALTH SCREEN */
+  .health-main { flex: 1; padding: 16px 28px 120px; display: flex; flex-direction: column; overflow-y: auto; }
+  .health-glucose-row { display: flex; align-items: baseline; gap: 14px; margin-top: 20px; }
+  .health-glucose-row .num { font-size: 72px; font-weight: 200; letter-spacing: -2px; line-height: 1; }
+  .health-glucose-row .unit { font-size: 12px; color: #888; letter-spacing: 1px; text-transform: uppercase; }
+  .health-trend-meta { margin-top: 8px; font-size: 13px; color: #555; display: flex; align-items: center; gap: 6px; }
+  .health-hours-pills { display: flex; gap: 8px; margin-top: 22px; }
+  .hours-pill {
+    padding: 8px 16px; border-radius: 18px; border: 1px solid rgba(0,0,0,0.12);
+    background: transparent; font-size: 12px; cursor: pointer; color: #666; font-weight: 500;
+  }
+  .hours-pill.active { background: #1A1A1A; color: #fff; border-color: #1A1A1A; }
+  #healthChart { width: 100%; height: 260px; margin-top: 20px; }
+  .health-footer {
+    margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.08);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .health-footer .k { font-size: 12px; color: #888; }
+  .health-footer .v { font-size: 16px; font-weight: 500; }
+
+  /* RANGE (TIR DETAIL) SCREEN — Figma: small intro, big 65%, wide stacked bar, 4-item legend */
+  .range-main { flex: 1; padding: 12px 28px 120px; display: flex; flex-direction: column; overflow-y: auto; }
+  .range-intro-title { font-size: 22px; font-weight: 500; margin-top: 4px; }
+  .range-intro-sub { font-size: 13px; color: #666; margin-top: 6px; line-height: 1.5; }
+  .range-intro-sub strong { color: #1A1A1A; font-weight: 600; }
+  .range-hero { margin-top: 28px; display: flex; align-items: baseline; gap: 10px; }
+  .range-hero .big-pct { font-size: 108px; font-weight: 200; line-height: 1; letter-spacing: -4px; color: #1A1A1A; }
+  .range-hero .pct-sign { font-size: 44px; font-weight: 200; color: #1A1A1A; margin-left: -4px; }
+  .range-inrange-label { font-size: 14px; color: #555; margin-top: 4px; }
+  .range-stacked-bar {
+    margin-top: 36px; height: 160px; border-radius: 16px; overflow: hidden;
+    display: flex; flex-direction: row-reverse; /* VH→H→T→L→VL from right to left for vertical-edge look */
+    background: #C7E1C1;
+  }
+  .range-seg { transition: flex-basis 500ms ease; min-width: 2px; }
+  .range-seg.very-high { background: #FF8A5C; }
+  .range-seg.high      { background: #FFC77A; }
+  .range-seg.target    { background: #C7E1C1; }
+  .range-seg.low       { background: #FFC9A3; }
+  .range-seg.very-low  { background: #E57373; }
+  .range-legend {
+    margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px 18px;
+  }
+  .range-legend .item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #555; }
+  .range-legend .item .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .range-legend .item .pct { font-weight: 600; color: #1A1A1A; margin-right: 2px; }
+  .range-legend .item .lbl { color: #666; }
+
+  /* AVERAGE GLUCOSE SCREEN */
+  .avg-main { flex: 1; padding: 16px 28px 120px; display: flex; flex-direction: column; overflow-y: auto; }
+  .avg-hero { margin-top: 16px; }
+  .avg-hero .big-num { font-size: 108px; font-weight: 200; line-height: 1; letter-spacing: -4px; }
+  .avg-hero .unit { font-size: 13px; color: #888; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+  .avg-delta-banner {
+    margin-top: 16px; padding: 12px 16px; border-radius: 14px;
+    background: rgba(255,160,80,0.12); color: #8A4B00; font-size: 12px; line-height: 1.5;
+  }
+  .avg-delta-banner strong { color: #1A1A1A; font-weight: 600; }
+  .week-section { margin-top: 28px; }
+  .week-section .section-title { font-size: 11px; color: #888; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
+  .week-row { display: flex; justify-content: space-between; gap: 6px; }
+  .day-bubble { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .day-bubble .day { font-size: 11px; color: #888; font-weight: 600; }
+  .day-bubble .bubble {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500; color: #1A1A1A;
+  }
+  .day-bubble .bubble.target { background: #C7E1C1; }
+  .day-bubble .bubble.low { background: #FFD6C0; }
+  .day-bubble .bubble.high { background: #FFE4A8; }
+  .day-bubble .bubble.very-high { background: #FFB87A; }
+  .avg-goal { margin-top: 28px; font-size: 13px; color: #555; text-align: center; }
+  .avg-goal strong { color: #1A1A1A; }
+
+  .badge {
+    display: inline-block; padding: 3px 8px; border-radius: 10px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .badge.live { background: #4CAF50; color: white; }
+  .badge.err { background: #F44336; color: white; }
+  .badge.loading { background: #FFA726; color: white; }
+
+  .connection-banner {
+    position: absolute; top: 90px; left: 50%; transform: translateX(-50%);
+    padding: 6px 12px; border-radius: 20px; font-size: 10px;
+    z-index: 100; display: flex; align-items: center; gap: 6px;
+    opacity: 1; transition: opacity 400ms ease;
+    pointer-events: none;
+  }
+  .connection-banner.hidden { opacity: 0; }
+
+  .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: #4CAF50; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .err-dot { background: #F44336; animation: none; }
+
+  .shimmer {
+    background: linear-gradient(90deg, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.05) 75%);
+    background-size: 200% 100%; animation: shimmer 1.6s linear infinite; border-radius: 12px;
+  }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+  /* info-panel removed on mobile */
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="connection-banner" id="banner">
+    <span class="pulse-dot" id="bannerDot"></span>
+    <span id="bannerText">Connecting to Demo2...</span>
+  </div>
+
+  <div class="status-bar">
+    <span id="clock">9:41</span>
+    <span class="icons">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><path d="M1 1h2v10H1zM6 4h2v7H6zM11 7h2v4h-2zM16 2h2v9h-2z"/></svg>
+    </span>
+  </div>
+
+  <div class="top-nav">
+    <button class="icon-btn">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="title">CGM Plus</span>
+    <button class="icon-btn">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+    </button>
+  </div>
+
+  <!-- HOME -->
+  <div class="screen active" id="home">
+    <div class="home-main">
+      <div class="glucose-block">
+        <div class="glucose-value" id="glucoseVal">--</div>
+        <div class="glucose-unit">mmol/L</div>
+        <div class="trend-row" id="trendRow">
+          <span class="trend-arrow" id="trendArrow">→</span>
+          <span id="trendText">Steady</span>
+          <span style="color:#aaa; margin-left:8px;" id="timeAgo"></span>
+        </div>
+      </div>
+
+      <div class="vitals-row">
+        <div class="vital">
+          <span class="label">Heart Rate</span>
+          <span class="value" id="hrVal">-- <span style="font-size:12px; color:#888;">bpm</span></span>
+        </div>
+        <div class="vital">
+          <span class="label">Activity</span>
+          <span class="value" id="activityVal">-- <span style="font-size:12px; color:#888;">steps</span></span>
+        </div>
+        <div class="vital">
+          <span class="label">Skin Temp</span>
+          <span class="value" id="tempVal">-- <span style="font-size:12px; color:#888;">°C</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-bottom">
+      <div class="divider"></div>
+      <div class="status-label">Glucose level:</div>
+      <div class="status-value" id="statusVal">--</div>
+      <div id="lastUpdated" style="font-size:11px; color:#aaa; margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="screen" id="dash">
+    <div class="dash-main">
+      <h2 class="dash-title">Dashboard</h2>
+
+      <!-- Time in Range -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Time in Range</span>
+          <span class="card-sub" id="tirPeriod">Last 24h</span>
+        </div>
+        <div class="tir-row">
+          <div class="tir-ring">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="10"/>
+              <circle id="tirCircle" cx="60" cy="60" r="52" fill="none" stroke="#4CAF50" stroke-width="10" stroke-dasharray="326.7" stroke-dashoffset="326.7" stroke-linecap="round"/>
+            </svg>
+            <div class="tir-text">
+              <span class="pct" id="tirPct">--%</span>
+              <span class="lbl">In Range</span>
+            </div>
+          </div>
+          <div class="tir-stats">
+            <div class="tir-stat"><span class="tir-dot" style="background:#D32F2F"></span><span class="tir-lbl">Very Low</span><span class="tir-val" id="tirVL">--%</span></div>
+            <div class="tir-stat"><span class="tir-dot" style="background:#F57C00"></span><span class="tir-lbl">Low</span><span class="tir-val" id="tirL">--%</span></div>
+            <div class="tir-stat"><span class="tir-dot" style="background:#4CAF50"></span><span class="tir-lbl">Target</span><span class="tir-val" id="tirT">--%</span></div>
+            <div class="tir-stat"><span class="tir-dot" style="background:#FFA726"></span><span class="tir-lbl">High</span><span class="tir-val" id="tirH">--%</span></div>
+            <div class="tir-stat"><span class="tir-dot" style="background:#E64A19"></span><span class="tir-lbl">Very High</span><span class="tir-val" id="tirVH">--%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trend Chart -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Glucose Trend</span>
+          <span class="card-sub" id="chartRange">24h</span>
+        </div>
+        <svg id="chart" viewBox="0 0 340 220"></svg>
+        <div class="time-pills" id="timePills">
+          <button class="pill" data-hours="1">1h</button>
+          <button class="pill" data-hours="3">3h</button>
+          <button class="pill" data-hours="6">6h</button>
+          <button class="pill" data-hours="12">12h</button>
+          <button class="pill active" data-hours="24">24h</button>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="big-stat-grid">
+        <div class="card big-stat">
+          <span class="card-title">Avg Glucose</span>
+          <div class="num" id="avgGluc">--</div>
+          <div class="sub">mmol/L</div>
+        </div>
+        <div class="card big-stat">
+          <span class="card-title">GMI</span>
+          <div class="num" id="gmiVal">--</div>
+          <div class="sub">estimated A1C</div>
+        </div>
+        <div class="card big-stat">
+          <span class="card-title">Std Dev</span>
+          <div class="num" id="sdVal">--</div>
+          <div class="sub">glucose variability</div>
+        </div>
+        <div class="card big-stat">
+          <span class="card-title">CV</span>
+          <div class="num" id="cvVal">--</div>
+          <div class="sub">% coefficient</div>
+        </div>
+      </div>
+
+      <!-- Session -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Sensor Session</span>
+          <span class="badge live" id="sessionBadge">ACTIVE</span>
+        </div>
+        <div class="session-row"><span class="k">Started</span><span id="sessStart">--</span></div>
+        <div class="session-row"><span class="k">Day</span><span id="sessDay">-- of 15</span></div>
+        <div class="session-row"><span class="k">Total readings</span><span id="sessReadings">--</span></div>
+        <div class="session-bar"><div class="fill" id="sessFill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEALTH (trend chart focus) -->
+  <div class="screen" id="health">
+    <div class="health-main">
+      <div class="health-glucose-row">
+        <span class="num" id="healthGlucoseVal">--</span>
+        <span class="unit">mmol/L</span>
+      </div>
+      <div class="health-trend-meta">
+        <span id="healthTrendArrow">→</span>
+        <span id="healthTrendText">Steady</span>
+      </div>
+
+      <div class="health-hours-pills">
+        <button class="hours-pill active" data-hours="3">3 Hours</button>
+        <button class="hours-pill" data-hours="6">6 Hours</button>
+        <button class="hours-pill" data-hours="12">12 Hours</button>
+      </div>
+
+      <svg id="healthChart" viewBox="0 0 340 260"></svg>
+
+      <div class="health-footer">
+        <div>
+          <div class="k">Min / Max</div>
+          <div class="v"><span id="healthMin">--</span> / <span id="healthMax">--</span></div>
+        </div>
+        <div>
+          <div class="k">Readings</div>
+          <div class="v" id="healthCount">--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RANGE (Time in Range detail) — Figma layout -->
+  <div class="screen" id="range">
+    <div class="range-main">
+      <div class="range-intro-title">Time in Range</div>
+      <div class="range-intro-sub" id="rangeIntroSub">You're outside of your <strong>75% target</strong>.</div>
+
+      <div class="range-hero">
+        <span class="big-pct" id="rangeInPct">--</span>
+        <span class="pct-sign">%</span>
+      </div>
+      <div class="range-inrange-label">In range</div>
+
+      <div class="range-stacked-bar" id="rangeStackedBar">
+        <div class="range-seg very-high" id="rangeSegVH" style="flex-basis:0%;"></div>
+        <div class="range-seg high"      id="rangeSegH"  style="flex-basis:0%;"></div>
+        <div class="range-seg target"    id="rangeSegT"  style="flex-basis:100%;"></div>
+        <div class="range-seg low"       id="rangeSegL"  style="flex-basis:0%;"></div>
+        <div class="range-seg very-low"  id="rangeSegVL" style="flex-basis:0%;"></div>
+      </div>
+
+      <div class="range-legend">
+        <div class="item"><span class="dot" style="background:#E57373"></span><span class="pct" id="legendVL">--%</span><span class="lbl">Very Low</span></div>
+        <div class="item"><span class="dot" style="background:#FFC9A3"></span><span class="pct" id="legendL">--%</span><span class="lbl">Low</span></div>
+        <div class="item"><span class="dot" style="background:#FF8A5C"></span><span class="pct" id="legendVH">--%</span><span class="lbl">Very High</span></div>
+        <div class="item"><span class="dot" style="background:#FFC77A"></span><span class="pct" id="legendH">--%</span><span class="lbl">High</span></div>
+      </div>
+      <div id="rangeLastUpdated" style="font-size:11px; color:#aaa; margin-top:14px; text-align:center;"></div>
+    </div>
+  </div>
+
+  <!-- AVERAGE -->
+  <div class="screen" id="average">
+    <div class="avg-main">
+      <div class="avg-hero">
+        <div class="big-num" id="avgBigNum">--</div>
+        <div class="unit">mmol/L average</div>
+      </div>
+
+      <div class="avg-delta-banner" id="avgBanner">
+        <span id="avgBannerText">Loading weekly comparison...</span>
+      </div>
+
+      <div class="week-section">
+        <div class="section-title">This week</div>
+        <div class="week-row" id="weekRow">
+          <div class="day-bubble"><span class="day">M</span><span class="bubble target" data-idx="0">--</span></div>
+          <div class="day-bubble"><span class="day">T</span><span class="bubble target" data-idx="1">--</span></div>
+          <div class="day-bubble"><span class="day">W</span><span class="bubble target" data-idx="2">--</span></div>
+          <div class="day-bubble"><span class="day">T</span><span class="bubble target" data-idx="3">--</span></div>
+          <div class="day-bubble"><span class="day">F</span><span class="bubble target" data-idx="4">--</span></div>
+          <div class="day-bubble"><span class="day">S</span><span class="bubble target" data-idx="5">--</span></div>
+          <div class="day-bubble"><span class="day">S</span><span class="bubble target" data-idx="6">--</span></div>
+        </div>
+      </div>
+
+      <div class="avg-goal">Your goal is <strong>below 10 mmol/L daily average</strong>.</div>
+      <div id="avgLastUpdated" style="font-size:11px; color:#aaa; margin-top:14px; text-align:center;"></div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" data-screen="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l9-9 9 9v9a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2z"/></svg>
+      Home
+    </button>
+    <button class="tab" data-screen="health">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      Health
+    </button>
+    <button class="tab" data-screen="range">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Range
+    </button>
+    <button class="tab" data-screen="average">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 18h4l3-12 4 18 3-9h4"/></svg>
+      Average
+    </button>
+    <button class="tab" data-screen="dash">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      More
+    </button>
+  </div>
+</div>
+
+<!-- Auth gate (shown when SECURE_AUTH_ENABLED = true) -->
+<div id="authGate" class="auth-gate hidden">
+  <div class="auth-title">CGM Plus</div>
+  <div class="auth-subtitle">Enter password to unlock</div>
+  <input id="authPassword" class="auth-input" type="password" placeholder="Password" autocomplete="off" />
+  <button id="authUnlock" class="auth-btn">Unlock</button>
+  <div id="authError" class="auth-error"></div>
+  <div id="authStatus" class="auth-status"></div>
+</div>
+
+<!-- Fingerprint registration prompt -->
+<div id="fpPrompt" class="fingerprint-prompt hidden">
+  <div class="fp-card">
+    <div class="fp-icon">&#128274;</div>
+    <div class="fp-title">Enable fingerprint unlock?</div>
+    <div class="fp-body">Use your fingerprint or Face ID to unlock the app next time. No passwords stored on device.</div>
+    <button id="fpEnable" class="fp-btn fp-btn-primary">Enable</button>
+    <button id="fpSkip" class="fp-btn fp-btn-secondary">Skip</button>
+  </div>
+</div>
+
+<!-- Hidden log element (keeps existing code working without visual panel) -->
+<div id="log" style="display:none;"></div>
+
+<script>
+// ── Feature flag: secure auth ──
+// When true, shows password/fingerprint gate and uses server-side login.
+// When false, runs legacy hardcoded-creds flow (for existing TWA compatibility).
+const SECURE_AUTH_ENABLED = true;
+
+// ── Legacy constants (used when SECURE_AUTH_ENABLED = false) ──
+// Fill these in only for local debugging. Leave blank for production.
+const LEGACY_API_BASE = '';
+const LEGACY_PATIENT_CRED = { username: '', password: '' };
+const LEGACY_CLINICIAN_CRED = { username: '', password: '' };
+const LEGACY_PATIENT_ID = '';
+
+// ── Runtime state (populated by either auth path) ──
+let API_BASE = LEGACY_API_BASE;
+let PATIENT_ID = LEGACY_PATIENT_ID;
+let token = null;
+let authRole = null;
+let _tokenExpiresAt = 0;
+let _authInProgress = false;
+// Registration data from password login (used for WebAuthn registration prompt)
+let _regData = null;
+let currentHours = 24;  // Home chart: wide window to find recent data
+let healthHours = 3;    // Health screen defaults to 3h like Dexcom
+let lastGlucoseReadings = []; // cached from last loadAll, reused by Health pills
+let cachedWeekReadings = null;
+let cachedWeekAt = 0;
+const WEEK_CACHE_MS = 5 * 60 * 1000;  // 5 min cache — week data changes slowly
+
+const logEl = document.getElementById('log');
+function log(msg, type = 'info') {
+  const d = document.createElement('div');
+  d.className = type;
+  d.style.color = type === 'err' ? '#FF8B8B' : (type === 'ok' ? '#9EFFB0' : '#D6D6D6');
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logEl.appendChild(d);
+  logEl.scrollTop = logEl.scrollHeight;
+  // Also mirror to console for remote-debug via chrome://inspect
+  try { (type === 'err' ? console.error : console.log)('[CGM]', msg); } catch {}
+}
+// Tap log panel to hide it
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('log');
+  if (el) el.addEventListener('click', () => { el.style.display = 'none'; });
+});
+
+let bannerHideTimer = null;
+function setBanner(text, state) {
+  document.getElementById('bannerText').textContent = text;
+  const dot = document.getElementById('bannerDot');
+  dot.className = state === 'err' ? 'pulse-dot err-dot' : 'pulse-dot';
+  const banner = document.getElementById('banner');
+  banner.style.background = state === 'err' ? 'rgba(244,67,54,0.15)' : 'rgba(76,175,80,0.15)';
+  banner.style.color = state === 'err' ? '#B71C1C' : '#1B5E20';
+  banner.classList.remove('hidden');
+  if (bannerHideTimer) clearTimeout(bannerHideTimer);
+  // Auto-hide on success after 2s so it doesn't cover scroll content.
+  if (state !== 'err') {
+    bannerHideTimer = setTimeout(() => banner.classList.add('hidden'), 2000);
+  }
+}
+
+// ── Legacy login (used when SECURE_AUTH_ENABLED = false) ──
+
+async function legacyDoLogin(cred, roleLabel) {
+  log(`Logging in as ${cred.username} (${roleLabel})`, 'info');
+  const res = await fetch(`${API_BASE}/ums/v2/users/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: cred.username, password: cred.password })
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    log(`${roleLabel} login failed ${res.status}: ${body.slice(0, 200)}`, 'err');
+    return null;
+  }
+  const data = await res.json();
+  log(`${roleLabel} token acquired`, 'ok');
+  return data.accessJwt.token;
+}
+
+async function legacyProbeReadAccess(t) {
+  const searchRequest = {
+    filter: { '_patient.id': { eq: PATIENT_ID }, '_state': { eq: 'ACTIVE' } },
+    limit: 1
+  };
+  const url = `${API_BASE}/device/v1/devices/usage-sessions?searchRequest=${encodeURIComponent(JSON.stringify(searchRequest))}`;
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${t}` } });
+  return res.ok;
+}
+
+async function legacyLogin() {
+  const patientToken = await legacyDoLogin(LEGACY_PATIENT_CRED, 'patient');
+  if (patientToken) {
+    const canRead = await legacyProbeReadAccess(patientToken);
+    if (canRead) {
+      token = patientToken;
+      authRole = 'patient';
+      log('Patient token has read scope. Using it.', 'ok');
+      return;
+    }
+    log('Patient token lacks read scope. Falling back to clinician.', 'info');
+  }
+  const clinToken = await legacyDoLogin(LEGACY_CLINICIAN_CRED, 'clinician');
+  if (!clinToken) throw new Error('Both logins failed');
+  token = clinToken;
+  authRole = 'clinician';
+  log('Using clinician token.', 'ok');
+}
+
+// ── Secure auth helpers ──
+
+const FUNCTIONS_BASE = window.location.origin;
+
+async function secureLoginWithPassword(appPassword, needsRegistration) {
+  const res = await fetch(`${FUNCTIONS_BASE}/.netlify/functions/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'password', appPassword, needsRegistration }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Login failed (${res.status})`);
+  return data;
+}
+
+async function secureGetChallenge(credentialId) {
+  const res = await fetch(`${FUNCTIONS_BASE}/.netlify/functions/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'challenge', credentialId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Challenge failed (${res.status})`);
+  return data.options;
+}
+
+async function secureLoginWithWebAuthn(credentialId, assertion) {
+  const res = await fetch(`${FUNCTIONS_BASE}/.netlify/functions/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode: 'webauthn', credentialId, assertion }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `WebAuthn login failed (${res.status})`);
+  return data;
+}
+
+async function secureRegisterCredential(attestation, nonce, nonceSig) {
+  const res = await fetch(`${FUNCTIONS_BASE}/.netlify/functions/register-credential`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ attestation, nonce, nonceSig }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Registration failed (${res.status})`);
+  return data;
+}
+
+function applyLoginResult(result) {
+  token = result.token;
+  authRole = result.role;
+  PATIENT_ID = result.patientId;
+  API_BASE = result.apiBase;
+  _tokenExpiresAt = result.expiresAt || (Date.now() + 3600000);
+  log(`Secure login: role=${authRole}`, 'ok');
+}
+
+// base64url helpers for WebAuthn
+function bufferToBase64url(buf) {
+  const bytes = new Uint8Array(buf);
+  let str = '';
+  for (const b of bytes) str += String.fromCharCode(b);
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+function base64urlToBuffer(b64url) {
+  const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+  const binary = atob(b64 + pad);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+async function webauthnSupported() {
+  if (!window.PublicKeyCredential) return false;
+  try {
+    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  } catch { return false; }
+}
+
+// ── Fingerprint unlock flow ──
+
+async function attemptWebAuthnLogin() {
+  const credentialId = localStorage.getItem('cgm_webauthn_cred_id');
+  if (!credentialId) return false;
+
+  try {
+    const options = await secureGetChallenge(credentialId);
+
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge: base64urlToBuffer(options.challenge),
+        allowCredentials: [{
+          id: base64urlToBuffer(credentialId),
+          type: 'public-key',
+          transports: ['internal'],
+        }],
+        userVerification: 'required',
+        timeout: 60000,
+        rpId: options.rpId,
+      },
+    });
+
+    // Serialize for server
+    const serialized = {
+      id: assertion.id,
+      rawId: bufferToBase64url(assertion.rawId),
+      type: assertion.type,
+      response: {
+        authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+        clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
+        signature: bufferToBase64url(assertion.response.signature),
+        userHandle: assertion.response.userHandle ? bufferToBase64url(assertion.response.userHandle) : null,
+      },
+      clientExtensionResults: assertion.getClientExtensionResults(),
+    };
+
+    const result = await secureLoginWithWebAuthn(credentialId, serialized);
+    applyLoginResult(result);
+    return true;
+  } catch (err) {
+    log(`WebAuthn login failed: ${err.message}`, 'info');
+    return false;
+  }
+}
+
+async function registerWebAuthnCredential() {
+  if (!_regData) return false;
+  const { registrationChallenge, registrationNonce, registrationNonceSig, rpId, rpName } = _regData;
+
+  try {
+    const userId = new Uint8Array(16);
+    crypto.getRandomValues(userId);
+
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge: base64urlToBuffer(registrationChallenge),
+        rp: { id: rpId, name: rpName || 'CGM Plus' },
+        user: {
+          id: userId,
+          name: 'cgm-plus-user',
+          displayName: 'CGM Plus',
+        },
+        pubKeyCredParams: [
+          { alg: -7, type: 'public-key' },   // ES256
+          { alg: -257, type: 'public-key' },  // RS256
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'preferred',
+        },
+        attestation: 'none',
+        timeout: 60000,
+      },
+    });
+
+    // Serialize for server
+    const attestation = {
+      id: credential.id,
+      rawId: bufferToBase64url(credential.rawId),
+      type: credential.type,
+      response: {
+        attestationObject: bufferToBase64url(credential.response.attestationObject),
+        clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+      },
+      clientExtensionResults: credential.getClientExtensionResults(),
+    };
+
+    const result = await secureRegisterCredential(attestation, registrationNonce, registrationNonceSig);
+    if (result.ok) {
+      localStorage.setItem('cgm_webauthn_cred_id', result.credentialId);
+      log('WebAuthn credential registered', 'ok');
+      return true;
+    }
+    return false;
+  } catch (err) {
+    log(`WebAuthn registration failed: ${err.message}`, 'err');
+    return false;
+  }
+}
+
+// ── Token refresh on 401 ──
+
+async function refreshToken() {
+  if (_authInProgress) return false;
+  _authInProgress = true;
+  try {
+    // Try fingerprint first if registered
+    const credId = localStorage.getItem('cgm_webauthn_cred_id');
+    if (credId && await webauthnSupported()) {
+      const ok = await attemptWebAuthnLogin();
+      if (ok) { _authInProgress = false; return true; }
+    }
+    // Fall through to password prompt
+    showAuthGate();
+    _authInProgress = false;
+    return false; // caller should stop; init() will re-run after password entry
+  } catch {
+    _authInProgress = false;
+    return false;
+  }
+}
+
+// ── Auth gate UI ──
+
+function showAuthGate() {
+  const gate = document.getElementById('authGate');
+  gate.classList.remove('hidden');
+  document.getElementById('authPassword').value = '';
+  document.getElementById('authError').textContent = '';
+  document.getElementById('authStatus').textContent = '';
+  document.getElementById('authPassword').focus();
+}
+
+function hideAuthGate() {
+  document.getElementById('authGate').classList.add('hidden');
+}
+
+// Wire up auth gate events (runs once on load)
+function initAuthGateUI() {
+  const btn = document.getElementById('authUnlock');
+  const input = document.getElementById('authPassword');
+  const errEl = document.getElementById('authError');
+  const statusEl = document.getElementById('authStatus');
+
+  async function doUnlock() {
+    const pw = input.value.trim();
+    if (!pw) { errEl.textContent = 'Enter the app password'; return; }
+    btn.disabled = true;
+    errEl.textContent = '';
+    statusEl.textContent = 'Authenticating...';
+    try {
+      const hasWebAuthn = await webauthnSupported();
+      const hasCred = !!localStorage.getItem('cgm_webauthn_cred_id');
+      const skipped = localStorage.getItem('cgm_webauthn_skipped') === '1';
+      const needsRegistration = hasWebAuthn && !hasCred && !skipped;
+
+      const result = await secureLoginWithPassword(pw, needsRegistration);
+      applyLoginResult(result);
+      if (needsRegistration) {
+        _regData = result; // save for registration prompt
+      }
+      hideAuthGate();
+      statusEl.textContent = '';
+      await secureInitApp();
+    } catch (err) {
+      const msg = err.message || 'Login failed';
+      if (msg.includes('429') || msg.includes('Too many')) {
+        errEl.textContent = 'Too many attempts. Wait 1 minute.';
+      } else {
+        errEl.textContent = msg;
+      }
+      statusEl.textContent = '';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener('click', doUnlock);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') doUnlock(); });
+}
+
+// ── Fingerprint prompt UI ──
+
+function showFingerprintPrompt() {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('fpPrompt');
+    overlay.classList.remove('hidden');
+
+    document.getElementById('fpEnable').onclick = async () => {
+      overlay.classList.add('hidden');
+      const ok = await registerWebAuthnCredential();
+      resolve(ok);
+    };
+    document.getElementById('fpSkip').onclick = () => {
+      overlay.classList.add('hidden');
+      localStorage.setItem('cgm_webauthn_skipped', '1');
+      resolve(false);
+    };
+  });
+}
+
+// ── Secure init (called after successful auth) ──
+
+let _pollInterval = null;
+
+async function secureInitApp() {
+  try {
+    setBanner('Fetching data...', 'ok');
+    await loadAll();
+    if (_pollInterval) clearInterval(_pollInterval);
+    _pollInterval = setInterval(() => loadAll(), 60000);
+
+    // After first successful load, prompt for fingerprint if eligible
+    if (_regData && !localStorage.getItem('cgm_webauthn_cred_id')) {
+      await showFingerprintPrompt();
+      _regData = null;
+    }
+  } catch (e) {
+    log(e.message, 'err');
+    setBanner('Connection error', 'err');
+  }
+}
+
+// ── Logout (long-press title) ──
+
+function initLogout() {
+  const titleEl = document.querySelector('.top-nav .title');
+  if (!titleEl) return;
+  let pressTimer = null;
+  titleEl.addEventListener('touchstart', () => {
+    pressTimer = setTimeout(() => {
+      if (confirm('Sign out of CGM Plus?')) {
+        localStorage.removeItem('cgm_webauthn_cred_id');
+        localStorage.removeItem('cgm_webauthn_skipped');
+        token = null;
+        authRole = null;
+        _tokenExpiresAt = 0;
+        _regData = null;
+        showAuthGate();
+      }
+    }, 1500);
+  }, { passive: true });
+  titleEl.addEventListener('touchend', () => { if (pressTimer) clearTimeout(pressTimer); });
+  titleEl.addEventListener('touchcancel', () => { if (pressTimer) clearTimeout(pressTimer); });
+  // Mouse long-press for desktop testing
+  titleEl.addEventListener('mousedown', () => {
+    pressTimer = setTimeout(() => {
+      if (confirm('Sign out of CGM Plus?')) {
+        localStorage.removeItem('cgm_webauthn_cred_id');
+        localStorage.removeItem('cgm_webauthn_skipped');
+        token = null;
+        authRole = null;
+        _tokenExpiresAt = 0;
+        _regData = null;
+        showAuthGate();
+      }
+    }, 1500);
+  });
+  titleEl.addEventListener('mouseup', () => { if (pressTimer) clearTimeout(pressTimer); });
+  titleEl.addEventListener('mouseleave', () => { if (pressTimer) clearTimeout(pressTimer); });
+}
+
+// ── Unified login() — dispatches to legacy or secure path ──
+
+async function login() {
+  if (!SECURE_AUTH_ENABLED) {
+    await legacyLogin();
+    return;
+  }
+  // Secure path: token already set by auth gate before login() is called.
+  // This function is only reached from legacy init() path.
+  throw new Error('Secure auth: use auth gate instead of login()');
+}
+
+async function fetchMeasurements(hours, limit = 100) {
+  // BioT caps at 100 rows per query (ignores limit param). With 5 fields per
+  // timestamp that's ~20 glucose readings per chunk. We use 1-hour chunks with
+  // limited concurrency (4 at a time) and 1 retry per failed chunk to avoid
+  // overwhelming the API with 24 simultaneous requests.
+  const now = new Date();
+
+  const fetchChunk = async (from, to) => {
+    const searchRequest = {
+      filter: {
+        '_patient.id': { eq: PATIENT_ID },
+        timestamp: { from, to }
+      },
+      limit: 100,
+      sort: [{ field: 'timestamp', order: 'DESC' }]
+    };
+    const url = `${API_BASE}/measurement/v2/measurements/raw?searchRequest=${encodeURIComponent(JSON.stringify(searchRequest))}`;
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (res.status === 401 && SECURE_AUTH_ENABLED) {
+      const refreshed = await refreshToken();
+      if (refreshed) {
+        const retry = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!retry.ok) return [];
+        const d2 = await retry.json();
+        return d2.data || d2.rows || d2.results || [];
+      }
+      return [];
+    }
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.data || data.rows || data.results || [];
+  };
+
+  // Build chunk definitions (1-hour windows)
+  const chunkDefs = [];
+  for (let h = 0; h < hours; h++) {
+    const cTo = new Date(now.getTime() - h * 3600000);
+    const cFrom = new Date(now.getTime() - Math.min(h + 1, hours) * 3600000);
+    chunkDefs.push({ from: cFrom.toISOString(), to: cTo.toISOString() });
+  }
+
+  // Run chunks with concurrency limit of 4 and 1 retry per failure.
+  const MAX_CONCURRENT = 4;
+  const rowsLists = [];
+  for (let i = 0; i < chunkDefs.length; i += MAX_CONCURRENT) {
+    const batch = chunkDefs.slice(i, i + MAX_CONCURRENT);
+    const results = await Promise.all(batch.map(async (c) => {
+      let rows = await fetchChunk(c.from, c.to);
+      if (!rows.length) {
+        // One retry after a short pause
+        await new Promise(r => setTimeout(r, 200));
+        rows = await fetchChunk(c.from, c.to);
+      }
+      return rows;
+    }));
+    rowsLists.push(...results);
+  }
+
+  // Merge, dedupe by timestamp+param (BioT returns 1 row per field per timestamp),
+  // then sort ASC by timestamp for downstream consumers.
+  const seen = new Set();
+  const all = [];
+  for (const rows of rowsLists) {
+    for (const r of rows) {
+      const key = `${r.timestamp}|${r.glucose != null ? 'g' : ''}${r.hr != null ? 'h' : ''}${r.hrv != null ? 'v' : ''}${r.skinTemp != null ? 's' : ''}${r.activity != null ? 'a' : ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      all.push(r);
+    }
+  }
+  all.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  return all;
+}
+
+async function fetchSession() {
+  const searchRequest = {
+    filter: {
+      '_patient.id': { eq: PATIENT_ID },
+      '_state': { eq: 'ACTIVE' }
+    },
+    limit: 1
+  };
+  const url = `${API_BASE}/device/v1/devices/usage-sessions?searchRequest=${encodeURIComponent(JSON.stringify(searchRequest))}`;
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+  if (res.status === 401 && SECURE_AUTH_ENABLED) {
+    const refreshed = await refreshToken();
+    if (refreshed) {
+      const retry = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!retry.ok) return null;
+      const d2 = await retry.json();
+      const r2 = d2.data || d2.rows || d2.results || [];
+      return r2[0] || null;
+    }
+    return null;
+  }
+  if (!res.ok) {
+    log(`Session fetch returned ${res.status}`, 'err');
+    return null;
+  }
+  const data = await res.json();
+  const rows = data.data || data.rows || data.results || [];
+  return rows[0] || null;
+}
+
+function toMmol(mgdl) {
+  return mgdl / 18.0182;
+}
+
+// Safe wrapper: returns null for non-finite or out-of-physiological-range values.
+// Guards against NaN, null, undefined, negative, or extreme values from BioT API.
+// Physiological range: 0-500 mg/dL (0-27.8 mmol/L). REQ-080, RCM-01.
+function safeToMmol(mgdl) {
+  if (mgdl == null || typeof mgdl !== 'number' || !Number.isFinite(mgdl)) return null;
+  if (mgdl < 0 || mgdl > 500) return null;
+  return mgdl / 18.0182;
+}
+
+function glucoseState(mmol) {
+  if (mmol == null || !Number.isFinite(mmol)) return { cls: '', status: 'No data' };
+  if (mmol < 3.0) return { cls: 'critical-low', status: 'Critically Low. Act now' };
+  if (mmol < 3.9) return { cls: 'low', status: 'Low' };
+  if (mmol <= 10.0) return { cls: '', status: 'Normal' };
+  if (mmol <= 13.9) return { cls: 'high', status: 'High' };
+  return { cls: 'critical-high', status: 'Critically High. Act now' };
+}
+
+function computeTrend(readings) {
+  if (readings.length < 2) return { arrow: '→', text: 'Steady', rate: 0 };
+  const last = readings[readings.length - 1];
+  const prev = readings[readings.length - 2];
+  const dtMin = (new Date(last.timestamp) - new Date(prev.timestamp)) / 60000;
+  if (dtMin <= 0) return { arrow: '→', text: 'Steady', rate: 0 };
+  const rate = (toMmol(last.glucose) - toMmol(prev.glucose)) / dtMin;
+  const abs = Math.abs(rate);
+  let arrow = '→', text = 'Steady';
+  if (abs >= 0.17) { arrow = rate > 0 ? '↑' : '↓'; text = rate > 0 ? 'Rising fast' : 'Falling fast'; }
+  else if (abs >= 0.11) { arrow = rate > 0 ? '↗' : '↘'; text = rate > 0 ? 'Rising' : 'Falling'; }
+  else if (abs >= 0.06) { arrow = rate > 0 ? '↗' : '↘'; text = rate > 0 ? 'Rising slowly' : 'Falling slowly'; }
+  return { arrow, text, rate };
+}
+
+function timeAgoStr(ts) {
+  const mins = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const h = Math.floor(mins / 60);
+  return `${h}h ago`;
+}
+
+// ── CGM-style chart pipeline ──
+// Real CGMs (Dexcom, Libre) report every 5 min with firmware smoothing.
+// Our simulator may send every 1-5 seconds. This pipeline:
+//   1. Resample raw readings into 5-minute bins (average glucose per bin)
+//   2. Two-pass weighted moving average for gentle rolling curves
+//   3. Catmull-Rom bezier through the smoothed points
+
+// Step 1: Resample into fixed-width time bins.
+// Returns array of { timestamp (bin center), glucose (avg of bin) }.
+function resampleToBins(readings, binMinutes = 5) {
+  if (readings.length < 2) return readings;
+  const binMs = binMinutes * 60 * 1000;
+  const t0 = new Date(readings[0].timestamp).getTime();
+  const tN = new Date(readings[readings.length - 1].timestamp).getTime();
+  const bins = [];
+  for (let edge = t0; edge <= tN; edge += binMs) {
+    bins.push({ start: edge, end: edge + binMs, sum: 0, count: 0 });
+  }
+  for (const r of readings) {
+    const t = new Date(r.timestamp).getTime();
+    const idx = Math.min(Math.floor((t - t0) / binMs), bins.length - 1);
+    bins[idx].sum += r.glucose;
+    bins[idx].count++;
+  }
+  // Only keep bins that have data
+  return bins
+    .filter(b => b.count > 0)
+    .map(b => ({
+      timestamp: new Date(b.start + (b.end - b.start) / 2).toISOString(),
+      glucose: b.sum / b.count
+    }));
+}
+
+// Step 2: Weighted moving average (triangular kernel). Two passes for extra smoothness.
+function smoothBins(bins, radius = 2) {
+  if (bins.length < 3) return bins;
+  const pass = (arr) => arr.map((b, i) => {
+    let wSum = 0, wTotal = 0;
+    for (let j = Math.max(0, i - radius); j <= Math.min(arr.length - 1, i + radius); j++) {
+      const w = radius + 1 - Math.abs(j - i); // triangular weight
+      wSum += arr[j].glucose * w;
+      wTotal += w;
+    }
+    return { ...b, glucose: wSum / wTotal };
+  });
+  return pass(pass(bins)); // two passes
+}
+
+// Step 3: Catmull-Rom cubic bezier SVG path.
+function smoothPath(points, tension = 0.35) {
+  if (points.length < 2) return '';
+  let d = `M ${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(points.length - 1, i + 2)];
+    const cp1x = p1.x + (p2.x - p0.x) * tension;
+    const cp1y = p1.y + (p2.y - p0.y) * tension;
+    const cp2x = p2.x - (p3.x - p1.x) * tension;
+    const cp2y = p2.y - (p3.y - p1.y) * tension;
+    d += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
+// Shared: draw a chart into an SVG element.
+function drawChartInto(svg, readings, opts = {}) {
+  svg.innerHTML = '';
+  if (!readings.length) return;
+
+  const W = opts.w || 340, H = opts.h || 220;
+  const padL = 20, padR = 42, padT = 18, padB = 32;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs) => {
+    const e = document.createElementNS(NS, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    return e;
+  };
+
+  // CGM pipeline: resample to 5-min bins, then double-pass weighted smooth
+  const binned = resampleToBins(readings, 5);
+  const smoothed = smoothBins(binned, 2);
+  const mmolVals = smoothed.map(r => toMmol(r.glucose));
+  const times = smoothed.map(r => new Date(r.timestamp).getTime());
+  const tMin = times[0], tMax = times[times.length - 1];
+  const yMin = Math.max(2, Math.floor(Math.min(...mmolVals, 3.9) - 0.5));
+  const yMax = Math.min(22, Math.ceil(Math.max(...mmolVals, 10.0) + 0.5));
+
+  const xOf = t => padL + ((t - tMin) / Math.max(1, tMax - tMin)) * plotW;
+  const yOf = v => padT + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+
+  // Target range band (3.9 - 10.0)
+  svg.appendChild(el('rect', {
+    x: padL, y: yOf(10.0), width: plotW, height: yOf(3.9) - yOf(10.0), fill: '#E8F2E5', rx: 4
+  }));
+
+  // Dashed gridlines at 3.9 and 10.0
+  [3.9, 10.0].forEach(v => {
+    svg.appendChild(el('line', {
+      x1: padL, x2: padL + plotW, y1: yOf(v), y2: yOf(v),
+      stroke: '#C8D9C3', 'stroke-width': 1, 'stroke-dasharray': '3 4'
+    }));
+  });
+
+  // Y labels on right
+  [{ v: 10.0, l: '10.0' }, { v: 3.9, l: '3.9' }].forEach(({ v, l }) => {
+    const t = el('text', {
+      x: padL + plotW + 6, y: yOf(v) + 4, 'font-size': 11,
+      'font-family': '-apple-system, sans-serif', fill: '#888'
+    });
+    t.textContent = l;
+    svg.appendChild(t);
+  });
+
+  // X-axis baseline
+  svg.appendChild(el('line', {
+    x1: padL, x2: padL + plotW, y1: padT + plotH, y2: padT + plotH,
+    stroke: '#ddd', 'stroke-width': 1
+  }));
+
+  // X ticks
+  const N_TICKS = 4;
+  for (let i = 0; i < N_TICKS; i++) {
+    const frac = i / (N_TICKS - 1);
+    const t = tMin + frac * (tMax - tMin);
+    const x = xOf(t);
+    svg.appendChild(el('line', { x1: x, x2: x, y1: padT + plotH, y2: padT + plotH + 4, stroke: '#ccc', 'stroke-width': 1 }));
+    const d = new Date(t);
+    const label = i === N_TICKS - 1 ? 'Now' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const txt = el('text', { x, y: padT + plotH + 20, 'font-size': 11, fill: '#888', 'text-anchor': 'middle' });
+    txt.textContent = label;
+    svg.appendChild(txt);
+  }
+
+  // Build pixel points from smoothed bins -- already at ~12 pts/hr, no downsampling needed
+  const points = smoothed.map((r, i) => ({ x: xOf(times[i]), y: yOf(mmolVals[i]) }));
+  const pathD = smoothPath(points, 0.35);
+
+  // Area fill under curve (closed path down to baseline)
+  if (pathD) {
+    const areaD = pathD
+      + ` L ${points[points.length - 1].x.toFixed(1)},${(padT + plotH).toFixed(1)}`
+      + ` L ${points[0].x.toFixed(1)},${(padT + plotH).toFixed(1)} Z`;
+    svg.appendChild(el('path', {
+      d: areaD, fill: '#0A3D3A', 'fill-opacity': '0.06'
+    }));
+  }
+
+  // Smooth line
+  if (pathD) {
+    svg.appendChild(el('path', {
+      d: pathD, fill: 'none', stroke: '#0A3D3A', 'stroke-width': 2,
+      'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+    }));
+  }
+
+  // Last-point dot
+  const last = points[points.length - 1];
+  svg.appendChild(el('circle', { cx: last.x, cy: last.y, r: 4, fill: '#0A3D3A' }));
+}
+
+function drawChart(readings) {
+  drawChartInto(document.getElementById('chart'), readings, { w: 340, h: 220 });
+}
+
+function drawHealthChart(readings) {
+  drawChartInto(document.getElementById('healthChart'), readings, { w: 340, h: 260 });
+}
+
+function applyHealthFromReadings(glucoseOnly) {
+  if (!glucoseOnly || !glucoseOnly.length) return;
+  const latest = glucoseOnly[glucoseOnly.length - 1];
+  const mmol = toMmol(latest.glucose);
+  document.getElementById('healthGlucoseVal').textContent = mmol.toFixed(1);
+  const trend = computeTrend(glucoseOnly);
+  document.getElementById('healthTrendArrow').textContent = trend.arrow;
+  document.getElementById('healthTrendText').textContent = trend.text;
+  // Anchor time window to last reading, not wall clock. This ensures the
+  // pill always shows dense data even when there is an ingestion gap.
+  const anchor = new Date(latest.timestamp).getTime();
+  const cutoff = anchor - healthHours * 3600000;
+  const subset = glucoseOnly.filter(r => new Date(r.timestamp).getTime() >= cutoff);
+  const mmols = subset.map(r => toMmol(r.glucose));
+  document.getElementById('healthMin').textContent = Math.min(...mmols).toFixed(1);
+  document.getElementById('healthMax').textContent = Math.max(...mmols).toFixed(1);
+  document.getElementById('healthCount').textContent = subset.length;
+  drawHealthChart(subset);
+}
+
+async function loadHealthScreen(hours) {
+  try {
+    const readings = await fetchMeasurements(hours, 288);
+    const glucoseOnly = readings.filter(r => r.glucose != null);
+    if (!glucoseOnly.length) return;
+    const latest = glucoseOnly[glucoseOnly.length - 1];
+    const mmol = toMmol(latest.glucose);
+    document.getElementById('healthGlucoseVal').textContent = mmol.toFixed(1);
+    const trend = computeTrend(glucoseOnly);
+    document.getElementById('healthTrendArrow').textContent = trend.arrow;
+    document.getElementById('healthTrendText').textContent = trend.text;
+    const mmols = glucoseOnly.map(r => toMmol(r.glucose));
+    document.getElementById('healthMin').textContent = Math.min(...mmols).toFixed(1);
+    document.getElementById('healthMax').textContent = Math.max(...mmols).toFixed(1);
+    document.getElementById('healthCount').textContent = glucoseOnly.length;
+    drawHealthChart(glucoseOnly);
+  } catch (e) {
+    log(`Health screen load: ${e.message}`, 'err');
+  }
+}
+
+function applyRangeScreen(tir) {
+  if (!tir) return;
+  const targetPct = 75; // Figma design goal
+  const inPct = Math.round(tir.timeInRange);
+  document.getElementById('rangeInPct').textContent = inPct;
+
+  // Intro sub: matches Figma copy style
+  const diff = inPct - targetPct;
+  const sub = document.getElementById('rangeIntroSub');
+  if (diff >= 0) {
+    sub.innerHTML = `You're meeting your <strong>${targetPct}% target</strong>. <strong>+${diff}%</strong> above goal.`;
+  } else {
+    sub.innerHTML = `You're outside of your <strong>${targetPct}% target</strong>. <strong>${Math.abs(diff)}%</strong> below goal.`;
+  }
+
+  // Stacked bar segments (flex-basis proportional to percentages, sum to 100%).
+  const total = tir.timeBelowRangeCritical + tir.timeBelowRange + tir.timeInRange + tir.timeAboveRange + tir.timeAboveRangeHigh;
+  const norm = v => total > 0 ? (v / total) * 100 : 0;
+  document.getElementById('rangeSegVL').style.flexBasis = norm(tir.timeBelowRangeCritical) + '%';
+  document.getElementById('rangeSegL').style.flexBasis  = norm(tir.timeBelowRange) + '%';
+  document.getElementById('rangeSegT').style.flexBasis  = norm(tir.timeInRange) + '%';
+  document.getElementById('rangeSegH').style.flexBasis  = norm(tir.timeAboveRange) + '%';
+  document.getElementById('rangeSegVH').style.flexBasis = norm(tir.timeAboveRangeHigh) + '%';
+
+  // Legend values
+  document.getElementById('legendVL').textContent = `${tir.timeBelowRangeCritical.toFixed(0)}%`;
+  document.getElementById('legendL').textContent  = `${tir.timeBelowRange.toFixed(0)}%`;
+  document.getElementById('legendVH').textContent = `${tir.timeAboveRangeHigh.toFixed(0)}%`;
+  document.getElementById('legendH').textContent  = `${tir.timeAboveRange.toFixed(0)}%`;
+}
+
+async function loadWeekAverages() {
+  // 7 parallel requests, one per calendar day (local time). First page only (100 rows ≈ 20 glucose readings).
+  // This is plenty to compute a daily average bubble without crushing the API.
+  const now = new Date();
+  const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+
+  const fetchDay = async (daysBack) => {
+    const dFrom = new Date(dayStart.getTime() - daysBack * 86400000);
+    const dTo = new Date(dFrom.getTime() + 86400000);
+    // Clamp upper bound to "now" for today.
+    const toIso = (dTo.getTime() > now.getTime() ? now : dTo).toISOString();
+    const searchRequest = {
+      filter: {
+        '_patient.id': { eq: PATIENT_ID },
+        timestamp: { from: dFrom.toISOString(), to: toIso }
+      },
+      limit: 100,
+      sort: [{ field: 'timestamp', order: 'ASC' }]
+    };
+    const url = `${API_BASE}/measurement/v2/measurements/raw?searchRequest=${encodeURIComponent(JSON.stringify(searchRequest))}`;
+    try {
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) return { weekday: dFrom.getDay(), ts: dFrom.getTime(), avg: null, n: 0 };
+      const data = await res.json();
+      const rows = (data.data || data.rows || data.results || []).filter(r => r.glucose != null);
+      if (!rows.length) return { weekday: dFrom.getDay(), ts: dFrom.getTime(), avg: null, n: 0 };
+      const sum = rows.reduce((s, r) => s + r.glucose, 0);
+      return { weekday: dFrom.getDay(), ts: dFrom.getTime(), avg: sum / rows.length, n: rows.length };
+    } catch {
+      return { weekday: dFrom.getDay(), ts: dFrom.getTime(), avg: null, n: 0 };
+    }
+  };
+
+  // Fire 7 days in parallel: 0 = today, 1 = yesterday, ... 6 = 6 days ago
+  const promises = [];
+  for (let i = 0; i <= 6; i++) promises.push(fetchDay(i));
+  const results = await Promise.all(promises);
+  cachedWeekReadings = results;
+  cachedWeekAt = Date.now();
+  return results;
+}
+
+function applyAverageScreen(days) {
+  // days is an array of { weekday, ts, avg (mg/dL), n }, one per day, 0=today ... 6=6 days ago
+  if (!days || !days.length) return;
+  const valid = days.filter(d => d.avg != null);
+  if (!valid.length) {
+    document.getElementById('avgBannerText').textContent = 'No glucose data in the last 7 days.';
+    return;
+  }
+
+  // Overall weekly average
+  const totalSum = valid.reduce((s, d) => s + d.avg * d.n, 0);
+  const totalN = valid.reduce((s, d) => s + d.n, 0);
+  const overallMmol = toMmol(totalSum / totalN);
+  document.getElementById('avgBigNum').textContent = overallMmol.toFixed(1);
+
+  // Delta: newest day vs oldest day
+  const sorted = valid.slice().sort((a, b) => a.ts - b.ts);
+  const oldest = sorted[0], newest = sorted[sorted.length - 1];
+  const banner = document.getElementById('avgBannerText');
+  if (sorted.length >= 2) {
+    const pctDiff = ((newest.avg - oldest.avg) / oldest.avg) * 100;
+    if (Math.abs(pctDiff) < 0.5) {
+      banner.innerHTML = `Your weekly average is <strong>steady</strong>.`;
+    } else if (pctDiff >= 0) {
+      banner.innerHTML = `Your average has <strong>increased ${pctDiff.toFixed(1)}%</strong> this week.`;
+    } else {
+      banner.innerHTML = `Your average has <strong>decreased ${Math.abs(pctDiff).toFixed(1)}%</strong> this week.`;
+    }
+  } else {
+    banner.innerHTML = `Showing today's average only — not enough prior days.`;
+  }
+
+  // Map weekday to Mon-first index (M=0 ... S=6)
+  const mondayIdx = w => (w + 6) % 7;
+  const byIdx = {};
+  days.forEach(d => {
+    if (d.avg != null) byIdx[mondayIdx(d.weekday)] = d;
+  });
+
+  document.querySelectorAll('#weekRow .bubble').forEach(b => {
+    const idx = parseInt(b.dataset.idx, 10);
+    const rec = byIdx[idx];
+    if (rec && rec.avg != null) {
+      const mmol = toMmol(rec.avg);
+      b.textContent = mmol.toFixed(1);
+      b.className = 'bubble ' + bubbleClass(mmol);
+    } else {
+      b.textContent = '--';
+      b.className = 'bubble';
+    }
+  });
+}
+
+function bubbleClass(mmol) {
+  if (mmol < 3.9) return 'low';
+  if (mmol <= 10.0) return 'target';
+  if (mmol <= 13.9) return 'high';
+  return 'very-high';
+}
+
+function computeTIRFromReadings(readings) {
+  if (!readings.length) return null;
+  let vl = 0, l = 0, t = 0, h = 0, vh = 0;
+  readings.forEach(r => {
+    const m = toMmol(r.glucose);
+    if (m < 3.0) vl++;
+    else if (m < 3.9) l++;
+    else if (m <= 10.0) t++;
+    else if (m <= 13.9) h++;
+    else vh++;
+  });
+  const n = readings.length;
+  return {
+    timeBelowRangeCritical: (vl / n) * 100,
+    timeBelowRange: (l / n) * 100,
+    timeInRange: (t / n) * 100,
+    timeAboveRange: (h / n) * 100,
+    timeAboveRangeHigh: (vh / n) * 100
+  };
+}
+
+function latestNonNull(readings, field) {
+  for (let i = readings.length - 1; i >= 0; i--) {
+    if (readings[i][field] != null) return readings[i][field];
+  }
+  return null;
+}
+
+function applyHome(reading, trend, allReadings, session) {
+  const mmol = toMmol(reading.glucose);
+  document.getElementById('glucoseVal').textContent = mmol.toFixed(1);
+  const state = glucoseState(mmol);
+  const phone = document.getElementById('phone');
+  phone.className = 'phone ' + state.cls;
+  document.getElementById('statusVal').textContent = state.status;
+  document.getElementById('trendArrow').textContent = trend.arrow;
+  document.getElementById('trendText').textContent = trend.text;
+  document.getElementById('timeAgo').textContent = '• ' + timeAgoStr(reading.timestamp);
+
+  // Try raw row first. Fall back to session averages.
+  let hr = latestNonNull(allReadings, 'hr');
+  if (hr == null) hr = latestNonNull(allReadings, 'heartRate');
+  if (hr == null && session && session.avgHeartRate != null) hr = session.avgHeartRate;
+
+  // Activity: sum steps across last 24h (cumulative) since individual rows are sparse and often 0.
+  const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+  const todayStart = startOfDay.getTime();
+  let activity = 0;
+  allReadings.forEach(r => {
+    if (r.activity != null && new Date(r.timestamp).getTime() >= todayStart) {
+      activity += Number(r.activity);
+    }
+  });
+  if (activity === 0 && session && session.totalSteps != null) activity = session.totalSteps;
+  if (activity === 0) {
+    // Fallback: sum all activity across whatever window we have
+    activity = allReadings.reduce((s, r) => s + (r.activity ? Number(r.activity) : 0), 0);
+  }
+
+  let skinTemp = latestNonNull(allReadings, 'skinTemp');
+  if (skinTemp == null && session && session.avgSkinTemp != null) skinTemp = session.avgSkinTemp;
+
+  if (hr != null) document.getElementById('hrVal').innerHTML = `${Math.round(hr)} <span style="font-size:12px; color:#888;">bpm</span>`;
+  document.getElementById('activityVal').innerHTML = `${Math.round(activity).toLocaleString()} <span style="font-size:12px; color:#888;">steps</span>`;
+  if (skinTemp != null) document.getElementById('tempVal').innerHTML = `${Number(skinTemp).toFixed(1)} <span style="font-size:12px; color:#888;">°C</span>`;
+}
+
+function applyDashboard(session, readings) {
+  // Always compute TIR from actual readings, not stale session cache
+  let tir = computeTIRFromReadings(readings);
+  if (tir) {
+    const pct = tir.timeInRange;
+    document.getElementById('tirPct').textContent = `${Math.round(pct)}%`;
+    document.getElementById('tirVL').textContent = `${tir.timeBelowRangeCritical.toFixed(1)}%`;
+    document.getElementById('tirL').textContent = `${tir.timeBelowRange.toFixed(1)}%`;
+    document.getElementById('tirT').textContent = `${tir.timeInRange.toFixed(1)}%`;
+    document.getElementById('tirH').textContent = `${tir.timeAboveRange.toFixed(1)}%`;
+    document.getElementById('tirVH').textContent = `${tir.timeAboveRangeHigh.toFixed(1)}%`;
+    const circ = 2 * Math.PI * 52;
+    document.getElementById('tirCircle').setAttribute('stroke-dashoffset', circ - (pct / 100) * circ);
+  }
+
+  if (session) {
+    if (session.avgGlucose != null) document.getElementById('avgGluc').textContent = toMmol(session.avgGlucose).toFixed(1);
+    if (session.gmi != null) document.getElementById('gmiVal').textContent = `${Number(session.gmi).toFixed(1)}%`;
+    if (session.glucoseSD != null) document.getElementById('sdVal').textContent = toMmol(session.glucoseSD).toFixed(2);
+    if (session.glucoseCV != null) document.getElementById('cvVal').textContent = `${Number(session.glucoseCV).toFixed(1)}`;
+    if (session.totalReadings != null) document.getElementById('sessReadings').textContent = session.totalReadings.toLocaleString();
+    if (session._creationTime || session.createdAt || session.startTime) {
+      const start = new Date(session._creationTime || session.createdAt || session.startTime);
+      document.getElementById('sessStart').textContent = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const dayNum = Math.min(15, Math.floor((Date.now() - start.getTime()) / 86400000) + 1);
+      document.getElementById('sessDay').textContent = `${dayNum} of 15`;
+      document.getElementById('sessFill').style.width = `${(dayNum / 15) * 100}%`;
+    }
+  } else {
+    // derive from readings
+    if (readings.length) {
+      const avg = readings.reduce((s, r) => s + r.glucose, 0) / readings.length;
+      document.getElementById('avgGluc').textContent = toMmol(avg).toFixed(1);
+      const mmols = readings.map(r => toMmol(r.glucose));
+      const mean = mmols.reduce((s, v) => s + v, 0) / mmols.length;
+      const sd = Math.sqrt(mmols.reduce((s, v) => s + (v - mean) ** 2, 0) / mmols.length);
+      document.getElementById('sdVal').textContent = sd.toFixed(2);
+      document.getElementById('cvVal').textContent = ((sd / mean) * 100).toFixed(1);
+      const gmi = 3.31 + 0.02392 * avg;
+      document.getElementById('gmiVal').textContent = `${gmi.toFixed(1)}%`;
+      document.getElementById('sessReadings').textContent = readings.length.toLocaleString();
+    }
+  }
+}
+
+async function loadAll() {
+  const hours = 24; // Always fetch full 24h, pills filter client-side
+  setBanner('Fetching data...', 'ok');
+  const t0 = performance.now();
+  try {
+    // Fire ALL three fetches in parallel. Week data only re-fetches if cache stale.
+    const tMeas0 = performance.now();
+    const measPromise = fetchMeasurements(hours, 288).then(r => {
+      const dt = Math.round(performance.now() - tMeas0);
+      log(`[timing] measurements(${hours}h): ${dt}ms, ${r.length} rows`, 'ok');
+      return r;
+    });
+    const tSess0 = performance.now();
+    const sessPromise = fetchSession().then(s => {
+      const dt = Math.round(performance.now() - tSess0);
+      log(`[timing] session: ${dt}ms`, 'ok');
+      return s;
+    });
+    const tWeek0 = performance.now();
+    const weekFromCache = (cachedWeekReadings && (Date.now() - cachedWeekAt) < WEEK_CACHE_MS);
+    const weekPromise = weekFromCache
+      ? Promise.resolve(cachedWeekReadings)
+      : loadWeekAverages().then(r => {
+          const dt = Math.round(performance.now() - tWeek0);
+          log(`[timing] weekAverages: ${dt}ms`, 'ok');
+          return r;
+        });
+
+    const [readings, session, weekReadings] = await Promise.all([
+      measPromise, sessPromise, weekPromise
+    ]);
+    const dt = Math.round(performance.now() - t0);
+    log(`[timing] loadAll total: ${dt}ms${weekFromCache ? ' (week cached)' : ''}`, 'ok');
+    if (session) log(`Session: ${session._id || session.id || '?'}`, 'ok'); else log('No active session found', 'err');
+
+    const glucoseOnly = readings.filter(r => r.glucose != null);
+    lastGlucoseReadings = glucoseOnly; // cache for pill reuse (Health + Dashboard)
+
+    // Filter to currentHours anchored to last reading (not wall clock)
+    const dashAnchor = new Date(glucoseOnly[glucoseOnly.length - 1].timestamp).getTime();
+    const dashCutoff = dashAnchor - currentHours * 3600000;
+    const dashSubset = glucoseOnly.filter(r => new Date(r.timestamp).getTime() >= dashCutoff);
+
+    if (glucoseOnly.length) {
+      const trend = computeTrend(glucoseOnly);
+      const latest = glucoseOnly[glucoseOnly.length - 1];
+      applyHome(latest, trend, readings, session);
+      drawChart(dashSubset);
+    }
+    applyDashboard(session, dashSubset);
+    document.getElementById('chartRange').textContent = `${currentHours}h`;
+    document.getElementById('tirPeriod').textContent = `Last ${currentHours}h`;
+
+    // Range screen — always compute from actual readings, not stale session cache
+    const tirForRange = computeTIRFromReadings(glucoseOnly);
+    applyRangeScreen(tirForRange);
+
+    // Health screen — filter cached readings to healthHours window
+    applyHealthFromReadings(glucoseOnly);
+
+    // Average screen — from week data (parallel-fetched above)
+    if (weekReadings) applyAverageScreen(weekReadings);
+
+    // Last-updated timestamp visible to user
+    const now = new Date();
+    const stamp = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+    const lu = document.getElementById('lastUpdated');
+    if (lu) lu.textContent = `Updated ${stamp}`;
+    const luR = document.getElementById('rangeLastUpdated');
+    if (luR) luR.textContent = `Updated ${stamp}`;
+    const luA = document.getElementById('avgLastUpdated');
+    if (luA) luA.textContent = `Updated ${stamp}`;
+
+    document.getElementById('tirPeriod').textContent = `Last ${hours}h`;
+    document.getElementById('chartRange').textContent = `${hours}h`;
+    setBanner(`Live • ${dt}ms`, 'ok');
+  } catch (e) {
+    log(e.message, 'err');
+    setBanner('Connection error', 'err');
+  }
+}
+
+async function init() {
+  if (SECURE_AUTH_ENABLED) {
+    // Secure path: try fingerprint first, then show password gate
+    initAuthGateUI();
+    initLogout();
+
+    const credId = localStorage.getItem('cgm_webauthn_cred_id');
+    const hasWebAuthn = await webauthnSupported();
+
+    if (credId && hasWebAuthn) {
+      // Return visit: try fingerprint unlock
+      setBanner('Unlocking...', 'ok');
+      const ok = await attemptWebAuthnLogin();
+      if (ok) {
+        await secureInitApp();
+        return;
+      }
+      // Failed or cancelled: fall through to password
+    }
+
+    // Show password gate
+    showAuthGate();
+    return;
+  }
+
+  // Legacy path (SECURE_AUTH_ENABLED = false)
+  try {
+    const tLogin0 = performance.now();
+    setBanner('Logging in...', 'ok');
+    await legacyLogin();
+    const tLogin = Math.round(performance.now() - tLogin0);
+    log(`[timing] login: ${tLogin}ms`, 'ok');
+    setBanner(`Login ${tLogin}ms. Fetching...`, 'ok');
+    await loadAll();
+    if (_pollInterval) clearInterval(_pollInterval);
+    _pollInterval = setInterval(() => loadAll(), 60000);
+  } catch (e) {
+    log(e.message, 'err');
+    setBanner(e.message.includes('CORS') || e.message.includes('fetch') ? 'CORS/network blocked' : 'Login failed', 'err');
+  }
+}
+
+// Clock
+function tick() {
+  const d = new Date();
+  document.getElementById('clock').textContent = `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+tick(); setInterval(tick, 30000);
+
+// Tab nav
+const SCREEN_TITLES = { home: 'CGM Plus', health: 'CGM Plus', range: 'CGM Plus', average: 'CGM Plus', dash: 'CGM Plus' };
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(t.dataset.screen).classList.add('active');
+    const title = SCREEN_TITLES[t.dataset.screen] || 'Health';
+    document.querySelector('.top-nav .title').textContent = title;
+  });
+});
+
+// Time pills (Dashboard chart) — instant filter from cached 24h readings
+document.querySelectorAll('.pill').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+    p.classList.add('active');
+    currentHours = parseInt(p.dataset.hours, 10);
+    // Update chart range label
+    document.getElementById('chartRange').textContent = `${currentHours}h`;
+    document.getElementById('tirPeriod').textContent = `Last ${currentHours}h`;
+    // Filter cached readings anchored to last reading (not wall clock)
+    if (lastGlucoseReadings.length) {
+      const anchor = new Date(lastGlucoseReadings[lastGlucoseReadings.length - 1].timestamp).getTime();
+      const cutoff = anchor - currentHours * 3600000;
+      const subset = lastGlucoseReadings.filter(r => new Date(r.timestamp).getTime() >= cutoff);
+      drawChart(subset);
+      // Recompute TIR for selected window
+      const tir = computeTIRFromReadings(subset);
+      if (tir) {
+        document.getElementById('tirPct').textContent = `${Math.round(tir.timeInRange)}%`;
+        document.getElementById('tirVL').textContent = `${tir.timeBelowRangeCritical.toFixed(1)}%`;
+        document.getElementById('tirL').textContent = `${tir.timeBelowRange.toFixed(1)}%`;
+        document.getElementById('tirT').textContent = `${tir.timeInRange.toFixed(1)}%`;
+        document.getElementById('tirH').textContent = `${tir.timeAboveRange.toFixed(1)}%`;
+        document.getElementById('tirVH').textContent = `${tir.timeAboveRangeHigh.toFixed(1)}%`;
+      }
+    }
+  });
+});
+
+// Hours pills (Health screen) — instant filter from cached readings, no re-fetch
+document.querySelectorAll('.hours-pill').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('.hours-pill').forEach(x => x.classList.remove('active'));
+    p.classList.add('active');
+    healthHours = parseInt(p.dataset.hours, 10);
+    log(`Health range changed to ${healthHours}h`, 'info');
+    if (lastGlucoseReadings.length) {
+      applyHealthFromReadings(lastGlucoseReadings);
+    }
+  });
+});
+
+// Pull-to-refresh on mobile: tap banner to refresh
+document.getElementById('banner').addEventListener('click', () => loadAll());
+
+// Register service worker for offline/installable PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed:', err));
+  });
+}
+
+init();
+</script>
+
+</body>
+</html>
